@@ -4,6 +4,7 @@ La cadena de conexión se lee de .streamlit/secrets.toml ([connections.sql]).
 """
 
 import json
+import secrets
 
 import streamlit as st
 from sqlalchemy import text
@@ -31,26 +32,37 @@ CREATE TABLE IF NOT EXISTS respuestas (
     UNIQUE (asado_slug, nombre_clave)
 )"""
 
-GUARDAR_RESPUESTA = """
-INSERT INTO respuestas (asado_slug, nombre, nombre_clave, es_chico, es_vegetariano, apetito, elecciones)
-VALUES (:asado_slug, :nombre, :nombre_clave, :es_chico, :es_vegetariano, :apetito, CAST(:elecciones AS JSONB))
-ON CONFLICT (asado_slug, nombre_clave) DO UPDATE SET
-    nombre = EXCLUDED.nombre,
-    es_chico = EXCLUDED.es_chico,
-    es_vegetariano = EXCLUDED.es_vegetariano,
-    apetito = EXCLUDED.apetito,
-    elecciones = EXCLUDED.elecciones,
-    actualizado_en = now()"""
+# Columnas agregadas en la etapa 10: así también se suman a las tablas que ya existen en Neon.
+AGREGAR_COLUMNAS = [
+    "ALTER TABLE asados ADD COLUMN IF NOT EXISTS cerrado BOOLEAN NOT NULL DEFAULT false",
+    "ALTER TABLE respuestas ADD COLUMN IF NOT EXISTS token TEXT",
+]
+
+# Si el nombre ya respondió no hace nada y no devuelve filas: no se pisa la respuesta de otro.
+CREAR_RESPUESTA = """
+INSERT INTO respuestas (asado_slug, nombre, nombre_clave, token, es_chico, es_vegetariano, apetito, elecciones)
+VALUES (:asado_slug, :nombre, :nombre_clave, :token, :es_chico, :es_vegetariano, :apetito, CAST(:elecciones AS JSONB))
+ON CONFLICT (asado_slug, nombre_clave) DO NOTHING
+RETURNING token"""
+
+ACTUALIZAR_RESPUESTA = """
+UPDATE respuestas SET
+    es_chico = :es_chico,
+    es_vegetariano = :es_vegetariano,
+    apetito = :apetito,
+    elecciones = CAST(:elecciones AS JSONB),
+    actualizado_en = now()
+WHERE asado_slug = :asado_slug AND token = :token"""
 
 
 @st.cache_resource
 def _conexion():
-    """Conecta una sola vez por proceso y crea las tablas si no existen."""
+    """Conecta una sola vez por proceso y crea las tablas y columnas si no existen."""
     # pool_pre_ping: Neon cierra las conexiones cuando suspende la base.
     conn = st.connection("sql", pool_pre_ping=True)
     with conn.session as s:
-        s.execute(text(CREAR_ASADOS))
-        s.execute(text(CREAR_RESPUESTAS))
+        for sql in [CREAR_ASADOS, CREAR_RESPUESTAS, *AGREGAR_COLUMNAS]:
+            s.execute(text(sql))
         s.commit()
     return conn
 
@@ -68,10 +80,17 @@ def obtener_asado(slug):
     """Devuelve el asado como diccionario, o None si no existe."""
     with _conexion().session as s:
         fila = s.execute(
-            text("SELECT slug, nombre, fecha, clave_admin FROM asados WHERE slug = :slug"),
+            text("SELECT slug, nombre, fecha, clave_admin, cerrado FROM asados WHERE slug = :slug"),
             {"slug": slug},
         ).mappings().first()
     return dict(fila) if fila else None
+
+
+def cambiar_cerrado(slug, cerrado):
+    """Abre o cierra el formulario del asado."""
+    with _conexion().session as s:
+        s.execute(text("UPDATE asados SET cerrado = :cerrado WHERE slug = :slug"), {"slug": slug, "cerrado": cerrado})
+        s.commit()
 
 
 def listar_respuestas(asado_slug):
@@ -87,26 +106,51 @@ def listar_respuestas(asado_slug):
     return [dict(fila) for fila in filas]
 
 
-def guardar_respuesta(asado_slug, nombre, es_chico, es_vegetariano, apetito, elecciones):
-    """Crea o actualiza la respuesta de un invitado. Devuelve True si es nueva.
+def obtener_respuesta(asado_slug, token):
+    """La respuesta del link personal, o None si el token no corresponde a este asado."""
+    with _conexion().session as s:
+        fila = s.execute(
+            text(
+                "SELECT nombre, es_chico, es_vegetariano, apetito, elecciones FROM respuestas "
+                "WHERE asado_slug = :slug AND token = :token"
+            ),
+            {"slug": asado_slug, "token": token},
+        ).mappings().first()
+    return dict(fila) if fila else None
 
-    La persona se identifica por su nombre sin espacios al borde y en minúsculas.
+
+def crear_respuesta(asado_slug, nombre, es_chico, es_vegetariano, apetito, elecciones):
+    """Guarda una respuesta nueva y devuelve su token personal, o None si ese nombre ya respondió.
+
+    El nombre se compara sin espacios al borde y en minúsculas.
     """
     nombre = nombre.strip()
     params = {
         "asado_slug": asado_slug,
         "nombre": nombre,
         "nombre_clave": nombre.lower(),
+        "token": secrets.token_urlsafe(8),
         "es_chico": es_chico,
         "es_vegetariano": es_vegetariano,
         "apetito": apetito,
         "elecciones": json.dumps(elecciones, ensure_ascii=False),
     }
     with _conexion().session as s:
-        existe = s.execute(
-            text("SELECT 1 FROM respuestas WHERE asado_slug = :asado_slug AND nombre_clave = :nombre_clave"),
-            params,
-        ).first()
-        s.execute(text(GUARDAR_RESPUESTA), params)
+        fila = s.execute(text(CREAR_RESPUESTA), params).first()
         s.commit()
-    return existe is None
+    return fila[0] if fila else None
+
+
+def actualizar_respuesta(asado_slug, token, es_chico, es_vegetariano, apetito, elecciones):
+    """Edita la respuesta del link personal (el nombre no cambia)."""
+    params = {
+        "asado_slug": asado_slug,
+        "token": token,
+        "es_chico": es_chico,
+        "es_vegetariano": es_vegetariano,
+        "apetito": apetito,
+        "elecciones": json.dumps(elecciones, ensure_ascii=False),
+    }
+    with _conexion().session as s:
+        s.execute(text(ACTUALIZAR_RESPUESTA), params)
+        s.commit()

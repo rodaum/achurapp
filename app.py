@@ -91,16 +91,41 @@ def pantalla_crear():
         st.warning("Guardalo: es la única forma de ver las respuestas y la lista de compras.")
 
 
-def pantalla_invitado(asado):
+def tarjeta_link_personal(asado, token):
+    link = armar_link(asado=asado["slug"], invitado=token)
+    with st.container(border=True):
+        st.markdown("**🔗 Tu link personal**")
+        st.code(link, language=None)
+        st.caption("Guardalo: es la única forma de ver y cambiar tu respuesta.")
+        mensaje = f"Mi link para cambiar mi respuesta del asado {asado['nombre']}: {link}"
+        st.link_button("💬 Mandármelo por WhatsApp", link_whatsapp(mensaje), width="stretch")
+
+
+def pantalla_invitado(asado, token=None, respuesta=None):
+    """Sin token: respuesta nueva (link del grupo). Con token: edición de la propia (link personal)."""
     encabezado(asado)
-    st.write("Contanos qué querés comer así compramos lo justo (y un poco más).")
+    if asado["cerrado"]:
+        st.info("El formulario está cerrado: ya se hicieron las compras 🛒")
+        return
+
+    previa = respuesta or {}
+    elecciones_previas = previa.get("elecciones", {})
+    if respuesta:
+        with st.expander("🔗 Tu link personal"):
+            tarjeta_link_personal(asado, token)
+        st.write("Podés cambiar tu respuesta cuando quieras, hasta que se cierre el formulario.")
+        nombre = st.text_input("Nombre", value=respuesta["nombre"], disabled=True)
+    else:
+        st.write("Contanos qué querés comer así compramos lo justo (y un poco más).")
+        nombre = st.text_input("Nombre")
+        st.caption("Si alguien más tiene tu nombre, agregá tu apellido.")
 
     # Sin st.form: cada cambio se refleja al instante (ocultar carnes, preguntar por la ensalada).
-    nombre = st.text_input("Nombre")
-    st.caption("Si alguien más tiene tu nombre, agregá tu apellido.")
-    chico = st.toggle("🧒 Chico/a")
-    vegetariano = st.toggle("🥦 Vegetariano/a")
-    apetito = st.segmented_control("Apetito", list(APETITOS), default="normal", required=True, format_func=APETITOS.get)
+    chico = st.toggle("🧒 Chico/a", value=previa.get("es_chico", False))
+    vegetariano = st.toggle("🥦 Vegetariano/a", value=previa.get("es_vegetariano", False))
+    apetito = st.segmented_control(
+        "Apetito", list(APETITOS), default=previa.get("apetito", "normal"), required=True, format_func=APETITOS.get
+    )
 
     # Lo que no se muestra queda vacío: si es vegetariano/a, carnes y achuras.
     elecciones = {categoria: [] for categoria in config.CATEGORIAS} | {"sin_ensalada": []}
@@ -115,13 +140,17 @@ def pantalla_invitado(asado):
                 opciones = [op for op in opciones if op not in config.SOLO_VEGETARIANOS]
         with st.container(border=True):
             # La clave cambia con las opciones para que Streamlit no conserve una opción que ya no está.
+            # Se precargan las elecciones previas que sigan existiendo entre las opciones.
+            previas = [op for op in elecciones_previas.get(categoria, []) if op in opciones]
             elecciones[categoria] = st.pills(
-                titulo, opciones, selection_mode="multi", format_func=etiqueta, key=f"{categoria}-{len(opciones)}"
+                titulo, opciones, selection_mode="multi", default=previas, format_func=etiqueta,
+                key=f"{categoria}-{len(opciones)}",
             )
             if "ensalada" in elecciones[categoria]:
                 elecciones["sin_ensalada"] = st.pills(
                     "Ensalada criolla: lechuga, tomate y cebolla. ¿Le sacamos algo?",
-                    config.ENSALADA, selection_mode="multi", format_func=str.capitalize, key="sin_ensalada",
+                    config.ENSALADA, selection_mode="multi", default=elecciones_previas.get("sin_ensalada", []),
+                    format_func=str.capitalize, key="sin_ensalada",
                 )
 
     if not st.button("Enviar", type="primary", width="stretch"):
@@ -136,19 +165,38 @@ def pantalla_invitado(asado):
         st.error("Elegí al menos una verdura o algo de tu menú.")
     elif len(elecciones["sin_ensalada"]) == len(config.ENSALADA):
         st.error("A la ensalada le tiene que quedar al menos un ingrediente.")
-    else:
-        nueva = db.guardar_respuesta(asado["slug"], nombre, chico, vegetariano, apetito, elecciones)
-        if nueva:
-            st.success(f"¡Gracias, {nombre.strip()}! Guardamos tu respuesta.")
-        else:
-            st.success(f"Listo, {nombre.strip()}: actualizamos tu respuesta anterior.")
+    elif respuesta:
+        db.actualizar_respuesta(asado["slug"], token, chico, vegetariano, apetito, elecciones)
+        st.success(f"Listo, {nombre}: actualizamos tu respuesta.")
         st.balloons()
+    else:
+        token = db.crear_respuesta(asado["slug"], nombre, chico, vegetariano, apetito, elecciones)
+        if token is None:
+            st.error("Ya hay una respuesta con ese nombre. Si sos vos, entrá con tu link personal; si no, agregá tu apellido.")
+            return
+        # La URL pasa a ser el link personal: si toca algo más, sigue editando su propia respuesta.
+        st.query_params["invitado"] = token
+        st.success(f"¡Gracias, {nombre.strip()}! Guardamos tu respuesta.")
+        tarjeta_link_personal(asado, token)
+        st.balloons()
+
+
+def cambiar_formulario(slug):
+    """Se ejecuta al tocar el toggle, antes de volver a correr la pantalla."""
+    db.cambiar_cerrado(slug, not st.session_state["abierto"])
 
 
 def pantalla_organizador(asado):
     encabezado(asado)
     # Cualquier botón vuelve a correr el script, y eso ya relee la base.
     st.button("🔄 Actualizar")
+
+    # El estado real está en la base. Con una key fija y on_change, cada toque se guarda
+    # antes de redibujar (si el valor cambiaba la identidad del toggle, había que tocarlo dos veces).
+    st.session_state["abierto"] = not asado["cerrado"]
+    st.toggle("📝 Formulario abierto", key="abierto", on_change=cambiar_formulario, args=(asado["slug"],))
+    if asado["cerrado"]:
+        st.warning("Formulario cerrado: nadie puede responder ni cambiar su respuesta.")
 
     respuestas = db.listar_respuestas(asado["slug"])
     if not respuestas:
@@ -211,5 +259,12 @@ else:
             pantalla_organizador(asado)
         else:
             st.error("La clave de organizador no es correcta. Revisá que el link esté completo.")
+    elif "invitado" in st.query_params:
+        token = st.query_params["invitado"]
+        respuesta = db.obtener_respuesta(slug, token)
+        if respuesta is None:
+            st.error("Ese link personal no es válido. Revisá que esté completo.")
+        else:
+            pantalla_invitado(asado, token, respuesta)
     else:
         pantalla_invitado(asado)

@@ -57,6 +57,7 @@ Todo va en la **raíz del repo** (sin subcarpeta `asado/`):
 | sin parámetros                | **Crear asado**: nombre y fecha (opcional). Al crear, muestra el link para invitados y el link del organizador (con aviso de guardarlo). |
 | `?asado=<slug>`               | **Formulario del invitado**                                                                                                   |
 | `?asado=<slug>&admin=<clave>` | **Vista del organizador**                                                                                                     |
+| `?asado=<slug>&invitado=<token>` | **Link personal del invitado**: su formulario con las respuestas cargadas, para editarlas (etapa 10).                      |
 
 - `slug`: derivado del nombre del asado + sufijo aleatorio corto (ej. `cumple-juan-x7k2`). Se quitan tildes y ñ con `unicodedata` (biblioteca estándar).
 - Links absolutos: se arman con `st.context.url` si la versión de Streamlit lo trae; si no, se muestra solo la parte `?asado=...`.
@@ -75,8 +76,13 @@ Todo va en la **raíz del repo** (sin subcarpeta `asado/`):
   - si es vegetariano, tiene que elegir al menos una verdura o una opción de su menú;
   - si elige ensalada, le tiene que quedar al menos un ingrediente.
 - Si es vegetariano, las elecciones de carne y achuras se descartan al guardar.
-- Si alguien envía de nuevo con el mismo nombre en el mismo asado, **se actualiza su respuesta** (no se duplica). Los nombres se comparan **sin espacios al borde y sin distinguir mayúsculas/minúsculas** ("Juan" = " juan "); se muestra el nombre tal como se escribió en el último envío.
+- **Cada respuesta es privada y la edita solo quien la creó** (etapa 10; reemplaza la regla anterior de "reenviar con el mismo nombre actualiza"):
+  - al responder por primera vez desde el link del grupo, la persona recibe su **link personal** (`?asado=<slug>&invitado=<token>`, token con `secrets.token_urlsafe(8)`), con aviso de guardarlo y botón para mandárselo por WhatsApp. La URL del navegador pasa a ser ese link;
+  - con el link personal, el formulario aparece con sus respuestas cargadas y puede editarlas; el nombre no se cambia;
+  - desde el link del grupo, un nombre que ya respondió **no pisa** la respuesta existente: "Ya hay una respuesta con ese nombre. Si sos vos, entrá con tu link personal; si no, agregá tu apellido." Los nombres se comparan **sin espacios al borde y sin distinguir mayúsculas/minúsculas** ("Juan" = " juan ");
+  - si alguien pierde su link personal, no puede editar su respuesta.
 - Confirmación al guardar, con mensaje distinto para respuesta **nueva** o **actualizada**.
+- Si el formulario está **cerrado**, tanto el link del grupo como los personales muestran "El formulario está cerrado: ya se hicieron las compras 🛒".
 
 ### Vista del organizador
 
@@ -85,6 +91,7 @@ Todo va en la **raíz del repo** (sin subcarpeta `asado/`):
 - **Lista de compras** agrupada por **Carnicería**, **Verdulería** y **Almacén**, con cantidades.
 - Botón para **copiar/descargar la lista como texto** listo para pegar en WhatsApp.
 - Botón para refrescar.
+- Interruptor **"Formulario abierto"** para cerrar el formulario cuando ya se decidió la compra (y volver a abrirlo si hace falta).
 
 ## Reglas de negocio (definidas en la etapa 1)
 
@@ -184,7 +191,8 @@ CREATE TABLE IF NOT EXISTS asados (
     nombre      TEXT NOT NULL,
     fecha       DATE,
     clave_admin TEXT NOT NULL,
-    creado_en   TIMESTAMPTZ DEFAULT now()
+    creado_en   TIMESTAMPTZ DEFAULT now(),
+    cerrado     BOOLEAN NOT NULL DEFAULT false   -- etapa 10
 );
 
 CREATE TABLE IF NOT EXISTS respuestas (
@@ -197,11 +205,12 @@ CREATE TABLE IF NOT EXISTS respuestas (
     apetito         TEXT NOT NULL CHECK (apetito IN ('poco','normal','mucho')),
     elecciones      JSONB NOT NULL,   -- {"vaca": [...], "cerdo": [...], "pollo": [...], "achuras": [...], "verduras": [...], "acompanamientos": [...], "sin_ensalada": [...]}
     actualizado_en  TIMESTAMPTZ DEFAULT now(),
+    token           TEXT,             -- etapa 10: identifica el link personal
     UNIQUE (asado_slug, nombre_clave)
 );
 ```
 
-La app crea las tablas al iniciar si no existen. El reenvío con el mismo nombre usa `INSERT ... ON CONFLICT (asado_slug, nombre_clave) DO UPDATE` (que también actualiza `nombre`). Normalizar el nombre (trim) antes de guardar. La función de guardado devuelve si la respuesta fue nueva o una actualización.
+La app crea las tablas al iniciar si no existen; las columnas de la etapa 10 se agregan con `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, así también llegan a las tablas que ya existían. Una respuesta nueva usa `INSERT ... ON CONFLICT (asado_slug, nombre_clave) DO NOTHING RETURNING token`: si el nombre ya respondió no se guarda nada. La edición es un `UPDATE ... WHERE asado_slug = ... AND token = ...`. Normalizar el nombre (trim) antes de guardar.
 
 ## Etapas
 

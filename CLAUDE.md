@@ -4,12 +4,15 @@ La especificación completa y las reglas de trabajo están en [SPEC.md](SPEC.md)
 
 ## Estado
 
-- **Etapa actual:** 10 — Link personal y cierre del formulario (sin empezar; espera OK del usuario). Definida en SPEC.md.
-- Etapa 8 (ajuste del cálculo: redondeo a 10 g, achuras 60/60/50, provoleta sin extra) cerrada.
-- Etapa 9 (menú: verduras con tope, ensalada criolla, "🌱 Tu menú", medallones, formulario sin `st.form`) cerrada.
-- **Pendiente, pospuesto por el usuario:** deploy en Streamlit Community Cloud (pasos en el README). Etapa 6 ya hizo README, revisión de secretos y push a GitHub (rama `main`).
-- Etapa 7 (estética, agregada después de la spec original): tema claro/oscuro nativo, chips, pestañas, WhatsApp vía `wa.me`. Definida en SPEC.md.
-- Etapas cerradas: 2 (formulario y creación de asado), 3 (conexión a Neon), 4 (vista del organizador), 5 (cálculo y lista de compras).
+- **Etapa actual:** ninguna en curso. Todas las etapas definidas (2 a 10) están cerradas.
+- **Pendiente, pospuesto por el usuario:** deploy en Streamlit Community Cloud (pasos en el README). El código ya está en GitHub (rama `main`).
+- Etapas cerradas:
+  - 2 a 5: formulario y creación de asado, conexión a Neon, vista del organizador, cálculo y lista de compras.
+  - 6: README y revisión de secretos (el deploy quedó pospuesto).
+  - 7: estética (tema claro/oscuro nativo, chips, pestañas, WhatsApp vía `wa.me`).
+  - 8: ajuste del cálculo (redondeo a 10 g, achuras 60/60/50, provoleta y medallones sin extra).
+  - 9: menú detallado (verduras con tope, ensalada criolla, "🌱 Tu menú", medallones, formulario sin `st.form`).
+  - 10: link personal por invitado y cierre del formulario desde el organizador.
 
 ## Recordatorios
 
