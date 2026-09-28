@@ -11,35 +11,35 @@ def persona(apetito="normal", chico=False, vegetariano=False, **elecciones):
 
 def test_adulto_normal_un_corte():
     lista = calculo.calcular_lista([persona(vaca=["vacío"])])
-    # vacío: 400 g × 1,15 = 460 g -> 500 g
-    assert lista["Carnicería"] == {"vacío": (0.5, "kg")}
-    # pan: 120 g × 1,15 = 138 g -> 250 g; carbón: 0,46 kg -> 1 bolsa
-    assert lista["Almacén"] == {"pan": (0.25, "kg"), "carbón": (1, "bolsa")}
+    # vacío: 400 g × 1,15 = 460 g
+    assert lista["Carnicería"] == {"vacío": (460, "g")}
+    # pan: 120 g × 1,15 = 138 g -> 140 g; carbón: 0,46 kg -> 1 bolsa
+    assert lista["Almacén"] == {"pan": (140, "g"), "carbón": (1, "bolsa")}
 
 
 def test_reparto_entre_cortes():
     lista = calculo.calcular_lista([persona(vaca=["vacío"], cerdo=["bondiola"])] * 5)
-    # cada corte: 5 × 200 g = 1000 g × 1,15 = 1150 g -> 1250 g
-    assert lista["Carnicería"] == {"vacío": (1.25, "kg"), "bondiola": (1.25, "kg")}
+    # cada corte: 5 × 200 g = 1000 g × 1,15 = 1150 g
+    assert lista["Carnicería"] == {"vacío": (1150, "g"), "bondiola": (1150, "g")}
 
 
 def test_chico():
     lista = calculo.calcular_lista([persona(chico=True, vaca=["vacío"])] * 4)
-    # 4 × 400 g × 0,5 = 800 g × 1,15 = 920 g -> 1000 g
-    assert lista["Carnicería"]["vacío"] == (1.0, "kg")
+    # 4 × 400 g × 0,5 = 800 g × 1,15 = 920 g
+    assert lista["Carnicería"]["vacío"] == (920, "g")
 
 
 @pytest.mark.parametrize(
-    "apetito, kg",
+    "apetito, gramos",
     [
-        ("poco", 1.5),  # 4 × 300 g = 1200 g × 1,15 = 1380 g -> 1500 g
-        ("normal", 2.0),  # 4 × 400 g = 1600 g × 1,15 = 1840 g -> 2000 g
-        ("mucho", 2.5),  # 4 × 520 g = 2080 g × 1,15 = 2392 g -> 2500 g
+        ("poco", 1380),  # 4 × 300 g = 1200 g × 1,15 = 1380 g
+        ("normal", 1840),  # 4 × 400 g = 1600 g × 1,15 = 1840 g
+        ("mucho", 2400),  # 4 × 520 g = 2080 g × 1,15 = 2392 g -> 2400 g
     ],
 )
-def test_apetito(apetito, kg):
+def test_apetito(apetito, gramos):
     lista = calculo.calcular_lista([persona(apetito=apetito, vaca=["vacío"])] * 4)
-    assert lista["Carnicería"]["vacío"] == (kg, "kg")
+    assert lista["Carnicería"]["vacío"] == (gramos, "g")
 
 
 def test_vegetariano_sin_carne_y_acompanamientos_por_dos():
@@ -49,7 +49,7 @@ def test_vegetariano_sin_carne_y_acompanamientos_por_dos():
     # choclo: 1 × 2 × 1,15 = 2,3 -> 3 (un no vegetariano: 1,15 -> 2)
     assert lista["Verdulería"] == {"choclo": (3, "u")}
     # sin carne no hay carbón, pero el pan sí va
-    assert lista["Almacén"] == {"pan": (0.25, "kg")}
+    assert lista["Almacén"] == {"pan": (140, "g")}
 
     no_veg = calculo.calcular_lista([persona(vaca=["vacío"], acompanamientos=["choclo"])])
     assert no_veg["Verdulería"] == {"choclo": (2, "u")}
@@ -59,24 +59,37 @@ def test_extra_del_15_por_ciento():
     lista = calculo.calcular_lista([persona(vaca=["vacío"], achuras=["chorizo"])] * 10)
     # chorizo: 10 × 1,15 = 11,5 -> 12 (sin extra serían 10)
     assert lista["Carnicería"]["chorizo"] == (12, "u")
-    # vacío: 4000 g × 1,15 = 4600 g -> 4750 g
-    assert lista["Carnicería"]["vacío"] == (4.75, "kg")
+    # vacío: 4000 g × 1,15 = 4600 g
+    assert lista["Carnicería"]["vacío"] == (4600, "g")
 
 
 def test_se_redondea_el_total_y_no_cada_aporte():
     lista = calculo.calcular_lista([persona(vaca=["vacío"], cerdo=["bondiola"], pollo=["pata muslo"])] * 3)
-    # cada corte: 3 × 133,3 g = 400 g × 1,15 = 460 g -> 500 g (redondeando cada aporte serían 750 g)
-    assert lista["Carnicería"] == {"vacío": (0.5, "kg"), "bondiola": (0.5, "kg"), "pata muslo": (0.5, "kg")}
+    # cada corte: 3 × 133,3 g = 400 g × 1,15 = 460 g
+    # (redondeando cada aporte: 133,3 × 1,15 = 153,3 -> 160 g × 3 = 480 g)
+    assert lista["Carnicería"] == {"vacío": (460, "g"), "bondiola": (460, "g"), "pata muslo": (460, "g")}
 
 
 def test_redondeo_de_unidades_y_gramos():
     lista = calculo.calcular_lista(
-        [persona(vaca=["vacío"], achuras=["morcilla", "mollejas"], acompanamientos=["provoleta", "ensalada"])]
+        [persona(vaca=["vacío"], achuras=["morcilla", "mollejas", "riñón"], acompanamientos=["ensalada"])]
     )
     assert lista["Carnicería"]["morcilla"] == (1, "u")  # 0,5 × 1,15 = 0,575 -> 1
-    assert lista["Carnicería"]["mollejas"] == (0.25, "kg")  # 100 g × 1,15 = 115 g -> 250 g
-    assert lista["Almacén"]["provoleta"] == (1, "u")  # 0,5 × 1,15 = 0,575 -> 1
-    assert lista["Verdulería"]["ensalada"] == (0.25, "kg")  # 200 g × 1,15 = 230 g -> 250 g
+    assert lista["Carnicería"]["mollejas"] == (70, "g")  # 60 g × 1,15 = 69 g -> 70 g
+    assert lista["Carnicería"]["riñón"] == (60, "g")  # 50 g × 1,15 = 57,5 g -> 60 g
+    assert lista["Verdulería"]["ensalada"] == (230, "g")  # 200 g × 1,15 = 230 g
+
+
+def test_provoleta_sin_extra():
+    def provoletas(respuestas):
+        return calculo.calcular_lista(respuestas)["Almacén"]["provoleta"]
+
+    adulto = persona(vaca=["vacío"], acompanamientos=["provoleta"])
+    assert provoletas([adulto]) == (1, "u")  # 0,5 -> 1
+    assert provoletas([adulto] * 2) == (1, "u")  # 1 (con el 15 % serían 1,15 -> 2)
+    assert provoletas([adulto] * 3) == (2, "u")  # 1,5 -> 2
+    veg = persona(vegetariano=True, acompanamientos=["provoleta"])
+    assert provoletas([veg, adulto, adulto]) == (2, "u")  # 0,5 × 2 + 0,5 + 0,5 = 2
 
 
 def test_carbon_en_bolsas_incluye_chorizos():
@@ -97,8 +110,10 @@ def test_items_no_elegidos_no_aparecen():
 
 
 def test_formato_para_whatsapp():
-    assert calculo.formatear(1.25, "kg") == "1,25 kg"
+    assert calculo.formatear(460, "g") == "460 g"
+    assert calculo.formatear(1380, "g") == "1,38 kg"
+    assert calculo.formatear(2000, "g") == "2,00 kg"
     assert calculo.formatear(1, "u") == "1 unidad"
     assert calculo.formatear(2, "bolsa") == "2 bolsas de 4 kg"
     texto = calculo.texto_whatsapp("Cumple", calculo.calcular_lista([persona(vaca=["vacío"])]))
-    assert texto == "*Compras para Cumple*\n\n*Carnicería*\n- Vacío: 0,5 kg\n\n*Almacén*\n- Pan: 0,25 kg\n- Carbón: 1 bolsa de 4 kg"
+    assert texto == "*Compras para Cumple*\n\n*Carnicería*\n- Vacío: 460 g\n\n*Almacén*\n- Pan: 140 g\n- Carbón: 1 bolsa de 4 kg"

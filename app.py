@@ -135,12 +135,12 @@ def pantalla_organizador(asado):
         return
 
     lista = calculo.calcular_lista(respuestas)
-    kg_carne = sum(cantidad for cantidad, unidad in lista["Carnicería"].values() if unidad == "kg")
+    gramos_carne = sum(cantidad for cantidad, unidad in lista["Carnicería"].values() if unidad == "g")
     columnas = st.columns(4)
     columnas[0].metric("👥 Respuestas", len(respuestas), border=True)
     columnas[1].metric("🥦 Vegetarianos", sum(r["es_vegetariano"] for r in respuestas), border=True)
     columnas[2].metric("🧒 Chicos/as", sum(r["es_chico"] for r in respuestas), border=True)
-    columnas[3].metric("🥩 Carne", calculo.formatear(kg_carne, "kg"), border=True)
+    columnas[3].metric("🥩 Carne", calculo.formatear(gramos_carne, "g"), border=True)
 
     compras, gente, invitar = st.tabs(["🛒 Lista de compras", "👥 Respuestas", "📨 Invitar"])
 

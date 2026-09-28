@@ -14,9 +14,9 @@ CARNES = {
 ACHURAS = {
     "chorizo": (1, "u"),
     "morcilla": (0.5, "u"),
-    "chinchulines": (100, "g"),
-    "mollejas": (100, "g"),
-    "riñón": (80, "g"),
+    "chinchulines": (60, "g"),
+    "mollejas": (60, "g"),
+    "riñón": (50, "g"),
 }
 
 # Acompañamiento: (cantidad por persona, unidad, sección de compra).
@@ -54,4 +54,5 @@ KG_CARBON_POR_KG_CARNE = 1
 KG_BOLSA_CARBON = 4
 
 EXTRA = 0.15
-REDONDEO_GRAMOS = 250
+SIN_EXTRA = ["provoleta"]  # se compra entera: el extra la inflaba
+REDONDEO_GRAMOS = 10

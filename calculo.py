@@ -51,7 +51,7 @@ def _sumar_pedidos(respuestas):
 
 
 def calcular_lista(respuestas):
-    """Devuelve {sección: {ítem: (cantidad, unidad)}} con unidad "kg", "u" o "bolsa"."""
+    """Devuelve {sección: {ítem: (cantidad, unidad)}} con unidad "g", "u" o "bolsa"."""
     total = _sumar_pedidos(respuestas)
     lista = {seccion: {} for seccion in SECCIONES}
     kg_carne_y_achuras = 0  # con extra y antes de redondear: base del carbón
@@ -59,10 +59,11 @@ def calcular_lista(respuestas):
     for item, (unidad, seccion) in _items().items():
         if not total.get(item):
             continue  # nadie lo eligió
-        con_extra = total[item] * (1 + config.EXTRA)
+        extra = 0 if item in config.SIN_EXTRA else config.EXTRA
+        con_extra = total[item] * (1 + extra)
         if unidad == "g":
             gramos = _hacia_arriba(con_extra / config.REDONDEO_GRAMOS) * config.REDONDEO_GRAMOS
-            lista[seccion][item] = (gramos / 1000, "kg")
+            lista[seccion][item] = (gramos, "g")
             kg = con_extra / 1000
         else:
             lista[seccion][item] = (_hacia_arriba(con_extra), "u")
@@ -77,9 +78,9 @@ def calcular_lista(respuestas):
 
 
 def formatear(cantidad, unidad):
-    """(1.25, "kg") -> "1,25 kg"; (1, "u") -> "1 unidad"; (2, "bolsa") -> "2 bolsas de 4 kg"."""
-    if unidad == "kg":
-        return f"{cantidad:g} kg".replace(".", ",")
+    """(460, "g") -> "460 g"; (1380, "g") -> "1,38 kg"; (1, "u") -> "1 unidad"; (2, "bolsa") -> "2 bolsas de 4 kg"."""
+    if unidad == "g":
+        return f"{cantidad} g" if cantidad < 1000 else f"{cantidad / 1000:.2f} kg".replace(".", ",")
     if unidad == "bolsa":
         return f"{cantidad} {'bolsa' if cantidad == 1 else 'bolsas'} de {config.KG_BOLSA_CARBON} kg"
     return f"{cantidad} {'unidad' if cantidad == 1 else 'unidades'}"

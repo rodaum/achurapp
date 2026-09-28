@@ -127,9 +127,11 @@ Por cada persona que la elige, multiplicado por su factor:
 | ------------ | -------------------- | ---------------- |
 | chorizo      | 1                    | unidades         |
 | morcilla     | 0.5                  | unidades         |
-| chinchulines | 100 g                | kg               |
-| mollejas     | 100 g                | kg               |
-| riñón        | 80 g                 | kg               |
+| chinchulines | 60 g                 | gramos           |
+| mollejas     | 60 g                 | gramos           |
+| riñón        | 50 g                 | gramos           |
+
+(Etapa 8: las cantidades de chinchulines, mollejas y riñón bajaron de 100 / 100 / 80 g a 60 / 60 / 50 g.)
 
 Para el cálculo del carbón, chorizo y morcilla se convierten a peso: **100 g por unidad** cada uno (`PESO_CHORIZO`, `PESO_MORCILLA` en `config.py`).
 
@@ -139,7 +141,7 @@ Por cada persona que lo elige, multiplicado por su factor. **Si la persona es ve
 
 | Acompañamiento         | Cantidad por persona    | Sección    |
 | ---------------------- | ----------------------- | ---------- |
-| provoleta              | 0.5 (1 cada 2 personas) | Almacén    |
+| provoleta              | 0.5 (1 cada 2 personas; sin el 15 % extra) | Almacén    |
 | verduras a la parrilla | 300 g                   | Verdulería |
 | choclo                 | 1                       | Verdulería |
 | ensalada               | 200 g de verdura        | Verdulería |
@@ -148,18 +150,18 @@ Por cada persona que lo elige, multiplicado por su factor. **Si la persona es ve
 
 - **Pan**: 120 g por persona (todos, incluidos vegetarianos), × factor. Sección: Almacén.
 - **Carbón**: 1 kg de carbón por cada kg total de carne + achuras (chorizo y morcilla convertidos a peso), **en bolsas de 4 kg**. Sección: Almacén.
-  - Se calcula sobre los kg **con el extra del 15 % ya aplicado, antes de redondear** a múltiplos de 250 g.
+  - Se calcula sobre los kg **con el extra del 15 % ya aplicado, antes de redondear**.
   - Al carbón **no** se le aplica otro 15 %.
 
 ### Extra y redondeo
 
-- A todas las cantidades calculadas (incluido el pan) se les aplica un **extra del 15 %** (`EXTRA = 0.15`) antes de redondear. El carbón es la excepción (ver arriba).
+- A todas las cantidades calculadas (incluido el pan) se les aplica un **extra del 15 %** (`EXTRA = 0.15`) antes de redondear. Excepciones: el carbón (ver arriba) y la **provoleta** (`SIN_EXTRA` en `config.py`), porque se compra entera y el extra la inflaba (2 personas → 2 provoletas).
 - Se redondea **el total de cada ítem**, nunca el aporte individual de cada persona.
 - Redondeo **siempre hacia arriba**:
-  - cortes y achuras en kg: múltiplos de 250 g;
-  - verduras y pan: múltiplos de 250 g ("verduras a la parrilla" y "ensalada" son ítems separados en Verdulería);
+  - todo lo que se mide en gramos (cortes, achuras, verduras, pan): múltiplos de **10 g** (`REDONDEO_GRAMOS`). Así el redondeo casi no agrega nada y el margen lo da solo el 15 %, sin importar cuántas personas respondan ("verduras a la parrilla" y "ensalada" son ítems separados en Verdulería);
   - unidades (chorizo, morcilla, provoleta, choclo): entero;
   - carbón: bolsas enteras.
+- Formato en pantalla y en el texto: menos de 1 kg en gramos ("460 g"); desde 1 kg, en kg con dos decimales ("1,38 kg").
 - Un ítem que nadie eligió no aparece en la lista.
 
 ## Modelo de datos
@@ -238,6 +240,34 @@ La app crea las tablas al iniciar si no existen. El reenvío con el mismo nombre
 - Vista del organizador: indicadores (respuestas, vegetarianos, chicos/as, kg de carne), pestañas "Lista de compras" y "Respuestas", secciones de compra en tarjetas y botón "Enviar por WhatsApp".
 - WhatsApp: son links `https://wa.me/?text=...` que abren WhatsApp con el texto ya escrito. Es gratuito y no es una API: la app no se conecta a ningún servicio.
 - Sin cambios en el cálculo, la base ni las reglas de negocio.
+
+### Etapa 8 — Ajuste del cálculo
+
+- Achuras a 60 / 60 / 50 g, redondeo de gramos a 10 g, formato g / kg con dos decimales, provoleta sin el 15 % extra (ya incorporado en las reglas de arriba).
+- Actualizar los tests con los valores nuevos.
+
+### Etapa 9 — Menú más detallado
+
+- **Formulario sin `st.form`**: cada cambio se refleja al instante (hace falta para la ensalada). Visualmente igual.
+- **Verduras a la parrilla** pasa a ser una categoría propia, en Verdulería, con opciones: morrón, cebolla, berenjena, zapallito, papa, batata y choclo.
+  - Cada verdura elegida aporta **100 g por persona** × factor, con un **tope de 300 g por persona**: si elige más de tres, los 300 g se reparten en partes iguales.
+  - El **choclo** va en esa sección del formulario pero se cuenta aparte, en unidades: 1 por persona × factor. No cuenta para el tope.
+- **Ensalada** = ensalada criolla (lechuga, tomate y cebolla). Al elegirla aparece "¿Le sacamos algo?" con esos tres ingredientes. Los 200 g por persona × factor se reparten entre los ingredientes que sí quiere (al menos uno). En la lista, lechuga, tomate y cebolla van por separado en Verdulería, y la cebolla de la ensalada se suma con la de la parrilla en un solo renglón.
+- **Vegetarianos**:
+  - el título de "Acompañamientos" pasa a ser **"🌱 Tu menú"**;
+  - en esa sección aparece **"Medallones (soja, lentejas, garbanzos)"**, solo si está activado Vegetariano/a: 1 por persona × factor (con el × 2 vegetariano, 2), en unidades, sección Almacén;
+  - siguen contando **× 2 en todos los acompañamientos y verduras** (incluidos provoleta y medallones);
+  - tiene que elegir al menos una opción entre verduras y su menú.
+- **Datos viejos**: el cálculo ignora opciones que ya no existen, y se borran las respuestas de prueba de Neon (el usuario lo hace desde el SQL Editor, guiado).
+
+### Etapa 10 — Respuesta privada y cierre del formulario
+
+- **Link personal por invitado**: al responder por primera vez, cada invitado recibe un link propio (`?asado=<slug>&invitado=<token>`, token con `secrets.token_urlsafe(8)`), con aviso de guardarlo y botón para mandárselo por WhatsApp.
+  - Con el link personal, el formulario aparece con sus respuestas cargadas y puede editarlas. El nombre no se cambia.
+  - Con el link del grupo, un nombre que ya respondió **no pisa** la respuesta existente: se muestra "Ya hay una respuesta con ese nombre. Si sos vos, entrá con tu link personal; si no, agregá tu apellido." Esto reemplaza la regla anterior de "reenviar con el mismo nombre actualiza".
+  - Si alguien pierde su link personal, no puede editar su respuesta.
+- **Cerrar el formulario**: interruptor "Formulario abierto" en la vista del organizador, que se puede volver a abrir. Con el formulario cerrado, los links del grupo y los personales muestran "El formulario está cerrado: ya se hicieron las compras 🛒".
+- Modelo de datos: `respuestas.token TEXT` y `asados.cerrado BOOLEAN NOT NULL DEFAULT false`, agregadas con `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` al iniciar.
 
 ## Primer paso
 
