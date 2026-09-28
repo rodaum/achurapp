@@ -4,7 +4,7 @@ La especificación completa y las reglas de trabajo están en [SPEC.md](SPEC.md)
 
 ## Estado
 
-- **Etapa actual:** 6 — Preparación para deploy (sin empezar; espera OK del usuario).
+- **Etapa actual:** 6 — Preparación para deploy (README listo; falta commit, push y deploy, que hace el usuario).
 - Etapas cerradas: 2 (formulario y creación de asado), 3 (conexión a Neon), 4 (vista del organizador), 5 (cálculo y lista de compras).
 
 ## Recordatorios
