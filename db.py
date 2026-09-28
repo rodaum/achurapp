@@ -74,6 +74,19 @@ def obtener_asado(slug):
     return dict(fila) if fila else None
 
 
+def listar_respuestas(asado_slug):
+    """Devuelve las respuestas del asado como lista de diccionarios, ordenadas por nombre."""
+    with _conexion().session as s:
+        filas = s.execute(
+            text(
+                "SELECT nombre, es_chico, es_vegetariano, apetito, elecciones FROM respuestas "
+                "WHERE asado_slug = :slug ORDER BY nombre_clave"
+            ),
+            {"slug": asado_slug},
+        ).mappings().all()
+    return [dict(fila) for fila in filas]
+
+
 def guardar_respuesta(asado_slug, nombre, es_chico, es_vegetariano, apetito, elecciones):
     """Crea o actualiza la respuesta de un invitado. Devuelve True si es nueva.
 

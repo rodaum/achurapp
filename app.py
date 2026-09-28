@@ -96,6 +96,35 @@ def pantalla_invitado(asado):
             st.success(f"Listo, {nombre.strip()}: actualizamos tu respuesta anterior.")
 
 
+def pantalla_organizador(asado):
+    st.title(f"🔥 {asado['nombre']}")
+    if asado["fecha"]:
+        st.caption(f"Fecha: {asado['fecha']:%d/%m/%Y}")
+    st.write("**Link para invitados:**")
+    st.code(armar_link(asado=asado["slug"]), language=None)
+
+    # Cualquier botón vuelve a correr el script, y eso ya relee la base.
+    st.button("🔄 Actualizar")
+
+    respuestas = db.listar_respuestas(asado["slug"])
+    st.subheader(f"Respuestas: {len(respuestas)}")
+    if not respuestas:
+        st.info("Todavía no respondió nadie. Compartí el link para invitados.")
+        return
+
+    tabla = [
+        {
+            "Nombre": r["nombre"],
+            "Chico/a": r["es_chico"],
+            "Vegetariano/a": r["es_vegetariano"],
+            "Apetito": r["apetito"],
+            "Elecciones": ", ".join(op for opciones in r["elecciones"].values() for op in opciones),
+        }
+        for r in respuestas
+    ]
+    st.dataframe(tabla, hide_index=True)
+
+
 # --- Ruteo ---
 
 slug = st.query_params.get("asado")
@@ -106,6 +135,9 @@ else:
     if asado is None:
         st.error("No encontramos ese asado. Revisá que el link esté completo.")
     elif "admin" in st.query_params:
-        st.info("La vista del organizador llega en la etapa 4.")
+        if st.query_params["admin"] == asado["clave_admin"]:
+            pantalla_organizador(asado)
+        else:
+            st.error("La clave de organizador no es correcta. Revisá que el link esté completo.")
     else:
         pantalla_invitado(asado)
