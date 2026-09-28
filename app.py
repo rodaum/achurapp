@@ -8,6 +8,7 @@ from urllib.parse import urlencode
 
 import streamlit as st
 
+import calculo
 import config
 import db
 
@@ -123,6 +124,18 @@ def pantalla_organizador(asado):
         for r in respuestas
     ]
     st.dataframe(tabla, hide_index=True)
+
+    st.subheader("Lista de compras")
+    lista = calculo.calcular_lista(respuestas)
+    for seccion, items in lista.items():
+        if items:
+            renglones = [f"- {item}: {calculo.formatear(*cantidad)}" for item, cantidad in items.items()]
+            st.markdown(f"**{seccion}**\n" + "\n".join(renglones))
+
+    texto = calculo.texto_whatsapp(asado["nombre"], lista)
+    with st.expander("📋 Texto para WhatsApp (copiar con el ícono de arriba a la derecha)"):
+        st.code(texto, language=None)
+    st.download_button("⬇️ Descargar lista (.txt)", texto, file_name=f"compras-{asado['slug']}.txt")
 
 
 # --- Ruteo ---

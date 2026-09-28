@@ -4,8 +4,8 @@ La especificación completa y las reglas de trabajo están en [SPEC.md](SPEC.md)
 
 ## Estado
 
-- **Etapa actual:** 5 — Cálculo y lista de compras (sin empezar; espera OK del usuario).
-- Etapas cerradas: 2 (formulario y creación de asado), 3 (conexión a Neon), 4 (vista del organizador).
+- **Etapa actual:** 6 — Preparación para deploy (sin empezar; espera OK del usuario).
+- Etapas cerradas: 2 (formulario y creación de asado), 3 (conexión a Neon), 4 (vista del organizador), 5 (cálculo y lista de compras).
 
 ## Recordatorios
 
