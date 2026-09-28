@@ -4,8 +4,8 @@ La especificación completa y las reglas de trabajo están en [SPEC.md](SPEC.md)
 
 ## Estado
 
-- **Etapa actual:** 3 — Conexión a Neon (sin empezar; espera OK del usuario).
-- Etapas cerradas: 2 (formulario y creación de asado, en memoria).
+- **Etapa actual:** 4 — Vista del organizador (sin empezar; espera OK del usuario).
+- Etapas cerradas: 2 (formulario y creación de asado), 3 (conexión a Neon).
 
 ## Recordatorios
 
