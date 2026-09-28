@@ -1,0 +1,21 @@
+# Tema "brasa" de la app, con versión clara y oscura. Sin secretos: este archivo sí va al repo.
+# El modo se elige en el menú ⋮ → Settings; por defecto sigue al sistema operativo.
+[theme]
+showWidgetBorder = true
+baseRadius = "large"
+buttonRadius = "full"
+headingFontWeights = 800
+
+[theme.light]
+primaryColor = "#D9480F"
+backgroundColor = "#FFF9F3"
+secondaryBackgroundColor = "#FDEBDC"
+textColor = "#2B1B12"
+borderColor = "#F1D3BC"
+
+[theme.dark]
+primaryColor = "#FF7A3D"
+backgroundColor = "#1B1310"
+secondaryBackgroundColor = "#2B1F1A"
+textColor = "#F7EDE6"
+borderColor = "#4A352C"

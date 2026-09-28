@@ -101,4 +101,4 @@ def test_formato_para_whatsapp():
     assert calculo.formatear(1, "u") == "1 unidad"
     assert calculo.formatear(2, "bolsa") == "2 bolsas de 4 kg"
     texto = calculo.texto_whatsapp("Cumple", calculo.calcular_lista([persona(vaca=["vacío"])]))
-    assert texto == "*Compras para Cumple*\n\n*Carnicería*\n- vacío: 0,5 kg\n\n*Almacén*\n- pan: 0,25 kg\n- carbón: 1 bolsa de 4 kg"
+    assert texto == "*Compras para Cumple*\n\n*Carnicería*\n- Vacío: 0,5 kg\n\n*Almacén*\n- Pan: 0,25 kg\n- Carbón: 1 bolsa de 4 kg"

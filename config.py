@@ -30,11 +30,11 @@ ACOMPANAMIENTOS = {
 # Categorías tal como se guardan en `elecciones` y cómo se muestran.
 CATEGORIAS = {**CARNES, "achuras": list(ACHURAS), "acompanamientos": list(ACOMPANAMIENTOS)}
 TITULOS = {
-    "vaca": "Vaca",
-    "cerdo": "Cerdo",
-    "pollo": "Pollo",
-    "achuras": "Achuras",
-    "acompanamientos": "Acompañamientos",
+    "vaca": "🐄 Vaca",
+    "cerdo": "🐖 Cerdo",
+    "pollo": "🐔 Pollo",
+    "achuras": "🌭 Achuras",
+    "acompanamientos": "🥗 Acompañamientos",
 }
 
 # --- Cálculo ---

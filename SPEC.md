@@ -229,6 +229,16 @@ La app crea las tablas al iniciar si no existen. El reenvío con el mismo nombre
 - Guiarme en el `git push` a un repo público y en el deploy en Streamlit Community Cloud. Esos pasos los hago yo; vos me decís qué hacer y qué verificar.
 - Recordatorio en el README: Streamlit Community Cloud duerme la app tras 12 h sin visitas y Neon suspende la base sin uso; antes de una demo, abrir la app unos minutos antes.
 
+### Etapa 7 — Estética (agregada después de la etapa 6)
+
+- Tema "brasa" en `.streamlit/config.toml`: colores cálidos y bordes redondeados, con versión clara y oscura (`[theme.light]` / `[theme.dark]`). Por defecto sigue al sistema operativo y se cambia desde el menú ⋮ → Settings; Streamlit no permite cambiar el tema desde el código. Sin fuentes externas.
+- Los nombres de comidas se muestran con mayúscula inicial (solo en pantalla y en el texto de WhatsApp; en `config.py` y en la base siguen en minúscula para no romper datos existentes).
+- Crear asado: encabezado "Achurapp", links en tarjetas y botón para compartir el link de invitados por WhatsApp.
+- Formulario del invitado: cortes y acompañamientos como chips (`st.pills`), apetito con control segmentado y emojis, vegetariano y chico/a como interruptores, cada categoría en una tarjeta con ícono.
+- Vista del organizador: indicadores (respuestas, vegetarianos, chicos/as, kg de carne), pestañas "Lista de compras" y "Respuestas", secciones de compra en tarjetas y botón "Enviar por WhatsApp".
+- WhatsApp: son links `https://wa.me/?text=...` que abren WhatsApp con el texto ya escrito. Es gratuito y no es una API: la app no se conecta a ningún servicio.
+- Sin cambios en el cálculo, la base ni las reglas de negocio.
+
 ## Primer paso
 
 Antes de escribir código, confirmame en pocas líneas que entendiste el alcance y mencioname cualquier ambigüedad que veas en las reglas de negocio. Después arrancá con la **Etapa 2**.

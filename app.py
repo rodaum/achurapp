@@ -4,7 +4,7 @@ import re
 import secrets
 import string
 import unicodedata
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 import streamlit as st
 
@@ -12,7 +12,10 @@ import calculo
 import config
 import db
 
-st.set_page_config(page_title="Asado", page_icon="🔥")
+st.set_page_config(page_title="Achurapp", page_icon="🔥")
+
+APETITOS = {"poco": "🐣 Poco", "normal": "🙂 Normal", "mucho": "🦁 Mucho"}
+ICONOS_SECCION = {"Carnicería": "🥩", "Verdulería": "🥬", "Almacén": "🏪"}
 
 
 def generar_slug(nombre):
@@ -29,12 +32,33 @@ def armar_link(**params):
     return base.split("?")[0] + "?" + urlencode(params)
 
 
+def link_whatsapp(texto):
+    """Abre WhatsApp con el texto ya escrito; la persona elige a quién mandarlo."""
+    return "https://wa.me/?text=" + quote(texto)
+
+
+def encabezado(asado):
+    st.title(f"🔥 {asado['nombre']}")
+    if asado["fecha"]:
+        st.badge(f"{asado['fecha']:%d/%m/%Y}", icon="📅", color="orange")
+
+
+def tarjeta_invitados(asado):
+    link = armar_link(asado=asado["slug"])
+    with st.container(border=True):
+        st.markdown("**👥 Link para invitados**")
+        st.code(link, language=None)
+        invitacion = f"🔥 ¡Asado: {asado['nombre']}! Contanos qué querés comer: {link}"
+        st.link_button("💬 Compartir por WhatsApp", link_whatsapp(invitacion), type="primary", width="stretch")
+
+
 def pantalla_crear():
-    st.title("🔥 Organizá tu asado")
+    st.title("🔥 Achurapp")
+    st.write("Armá la lista de compras de tu asado para que **sobre y no falte**.")
     with st.form("crear"):
-        nombre = st.text_input("Nombre del asado", placeholder="Cumple de Juan")
+        nombre = st.text_input("¿Cómo se llama el asado?", placeholder="Cumple de Juan")
         fecha = st.date_input("Fecha (opcional)", value=None, format="DD/MM/YYYY")
-        creado = st.form_submit_button("Crear asado")
+        creado = st.form_submit_button("Crear asado", type="primary", width="stretch")
 
     if not creado:
         return
@@ -46,38 +70,39 @@ def pantalla_crear():
     clave = secrets.token_urlsafe(8)
     db.crear_asado(slug, nombre.strip(), fecha, clave)
 
-    st.success("¡Asado creado!")
-    st.write("**Link para invitados** (compartilo por WhatsApp):")
-    st.code(armar_link(asado=slug), language=None)
-    st.write("**Tu link de organizador:**")
-    st.code(armar_link(asado=slug, admin=clave), language=None)
-    st.warning("Guardá el link de organizador: es la única forma de ver las respuestas y la lista de compras.")
+    st.success("¡Asado creado! 🎉")
+    tarjeta_invitados({"slug": slug, "nombre": nombre.strip()})
+    with st.container(border=True):
+        st.markdown("**🔑 Tu link de organizador**")
+        st.code(armar_link(asado=slug, admin=clave), language=None)
+        st.warning("Guardalo: es la única forma de ver las respuestas y la lista de compras.")
 
 
 def pantalla_invitado(asado):
-    st.title(f"🔥 {asado['nombre']}")
-    if asado["fecha"]:
-        st.caption(f"Fecha: {asado['fecha']:%d/%m/%Y}")
+    encabezado(asado)
     st.write("Contanos qué querés comer así compramos lo justo (y un poco más).")
 
-    # Fuera del form para que al tildarla se oculten las carnes al instante.
-    vegetariano = st.checkbox("¿Es vegetariano/a?")
+    # Fuera del form para que al activarlo se oculten las carnes al instante.
+    vegetariano = st.toggle("🥦 Vegetariano/a")
 
-    with st.form("respuesta"):
+    with st.form("respuesta", border=False):
         nombre = st.text_input("Nombre")
         st.caption("Si alguien más tiene tu nombre, agregá tu apellido.")
-        chico = st.checkbox("¿Es chico/a?")
-        apetito = st.radio("Apetito", config.APETITOS, index=1, horizontal=True)
+        chico = st.toggle("🧒 Chico/a")
+        apetito = st.segmented_control(
+            "Apetito", list(APETITOS), default="normal", required=True, format_func=APETITOS.get
+        )
 
-        elecciones = {}
+        elecciones = {categoria: [] for categoria in config.CATEGORIAS}  # si es vegetariano/a, carnes y achuras quedan vacías
         for categoria, opciones in config.CATEGORIAS.items():
             if vegetariano and categoria != "acompanamientos":
-                elecciones[categoria] = []  # se descartan carnes y achuras
                 continue
-            st.subheader(config.TITULOS[categoria])
-            elecciones[categoria] = [op for op in opciones if st.checkbox(op, key=f"{categoria}-{op}")]
+            with st.container(border=True):
+                elecciones[categoria] = st.pills(
+                    config.TITULOS[categoria], opciones, selection_mode="multi", format_func=str.capitalize, key=categoria
+                )
 
-        enviado = st.form_submit_button("Enviar")
+        enviado = st.form_submit_button("Enviar", type="primary", width="stretch")
 
     if not enviado:
         return
@@ -95,47 +120,59 @@ def pantalla_invitado(asado):
             st.success(f"¡Gracias, {nombre.strip()}! Guardamos tu respuesta.")
         else:
             st.success(f"Listo, {nombre.strip()}: actualizamos tu respuesta anterior.")
+        st.balloons()
 
 
 def pantalla_organizador(asado):
-    st.title(f"🔥 {asado['nombre']}")
-    if asado["fecha"]:
-        st.caption(f"Fecha: {asado['fecha']:%d/%m/%Y}")
-    st.write("**Link para invitados:**")
-    st.code(armar_link(asado=asado["slug"]), language=None)
-
+    encabezado(asado)
     # Cualquier botón vuelve a correr el script, y eso ya relee la base.
     st.button("🔄 Actualizar")
 
     respuestas = db.listar_respuestas(asado["slug"])
-    st.subheader(f"Respuestas: {len(respuestas)}")
     if not respuestas:
-        st.info("Todavía no respondió nadie. Compartí el link para invitados.")
+        st.info("Todavía no respondió nadie. ¡Compartí el link!")
+        tarjeta_invitados(asado)
         return
 
-    tabla = [
-        {
-            "Nombre": r["nombre"],
-            "Chico/a": r["es_chico"],
-            "Vegetariano/a": r["es_vegetariano"],
-            "Apetito": r["apetito"],
-            "Elecciones": ", ".join(op for opciones in r["elecciones"].values() for op in opciones),
-        }
-        for r in respuestas
-    ]
-    st.dataframe(tabla, hide_index=True)
-
-    st.subheader("Lista de compras")
     lista = calculo.calcular_lista(respuestas)
-    for seccion, items in lista.items():
-        if items:
-            renglones = [f"- {item}: {calculo.formatear(*cantidad)}" for item, cantidad in items.items()]
-            st.markdown(f"**{seccion}**\n" + "\n".join(renglones))
+    kg_carne = sum(cantidad for cantidad, unidad in lista["Carnicería"].values() if unidad == "kg")
+    columnas = st.columns(4)
+    columnas[0].metric("👥 Respuestas", len(respuestas), border=True)
+    columnas[1].metric("🥦 Vegetarianos", sum(r["es_vegetariano"] for r in respuestas), border=True)
+    columnas[2].metric("🧒 Chicos/as", sum(r["es_chico"] for r in respuestas), border=True)
+    columnas[3].metric("🥩 Carne", calculo.formatear(kg_carne, "kg"), border=True)
 
-    texto = calculo.texto_whatsapp(asado["nombre"], lista)
-    with st.expander("📋 Texto para WhatsApp (copiar con el ícono de arriba a la derecha)"):
-        st.code(texto, language=None)
-    st.download_button("⬇️ Descargar lista (.txt)", texto, file_name=f"compras-{asado['slug']}.txt")
+    compras, gente, invitar = st.tabs(["🛒 Lista de compras", "👥 Respuestas", "📨 Invitar"])
+
+    with compras:
+        for seccion, items in lista.items():
+            if items:
+                with st.container(border=True):
+                    renglones = [f"- {item.capitalize()}: {calculo.formatear(*cantidad)}" for item, cantidad in items.items()]
+                    st.markdown(f"**{ICONOS_SECCION[seccion]} {seccion}**\n" + "\n".join(renglones))
+
+        texto = calculo.texto_whatsapp(asado["nombre"], lista)
+        izquierda, derecha = st.columns(2)
+        izquierda.link_button("💬 Enviar por WhatsApp", link_whatsapp(texto), type="primary", width="stretch")
+        derecha.download_button("⬇️ Descargar .txt", texto, file_name=f"compras-{asado['slug']}.txt", width="stretch")
+        with st.expander("📋 Ver texto para copiar"):
+            st.code(texto, language=None)
+
+    with gente:
+        tabla = [
+            {
+                "Nombre": r["nombre"],
+                "Chico/a": r["es_chico"],
+                "Vegetariano/a": r["es_vegetariano"],
+                "Apetito": APETITOS[r["apetito"]],
+                "Elecciones": ", ".join(op.capitalize() for opciones in r["elecciones"].values() for op in opciones),
+            }
+            for r in respuestas
+        ]
+        st.dataframe(tabla, hide_index=True)
+
+    with invitar:
+        tarjeta_invitados(asado)
 
 
 # --- Ruteo ---

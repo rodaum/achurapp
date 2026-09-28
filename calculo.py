@@ -91,5 +91,5 @@ def texto_whatsapp(nombre_asado, lista):
     for seccion, items in lista.items():
         if items:
             lineas += ["", f"*{seccion}*"]
-            lineas += [f"- {item}: {formatear(*cantidad)}" for item, cantidad in items.items()]
+            lineas += [f"- {item.capitalize()}: {formatear(*cantidad)}" for item, cantidad in items.items()]
     return "\n".join(lineas)
