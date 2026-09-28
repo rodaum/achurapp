@@ -19,29 +19,48 @@ ACHURAS = {
     "riñón": (50, "g"),
 }
 
-# Acompañamiento: (cantidad por persona, unidad, sección de compra).
+# Verduras a la parrilla (Verdulería): cada una aporta GRAMOS_POR_VERDURA por persona,
+# con un tope de TOPE_GRAMOS_VERDURAS por persona (si elige más, se reparten).
+VERDURAS = ["morrón", "cebolla", "berenjena", "zapallito", "papa", "batata"]
+GRAMOS_POR_VERDURA = 100
+TOPE_GRAMOS_VERDURAS = 300
+CHOCLOS_POR_PERSONA = 1  # en la misma sección del formulario, pero en unidades y fuera del tope
+
+# Ensalada criolla: GRAMOS_ENSALADA por persona, repartidos entre los ingredientes que quiere.
+ENSALADA = ["lechuga", "tomate", "cebolla"]
+GRAMOS_ENSALADA = 200
+
+# Acompañamiento con cantidad fija: (cantidad por persona, unidad, sección de compra).
 ACOMPANAMIENTOS = {
     "provoleta": (0.5, "u", "Almacén"),
-    "verduras a la parrilla": (300, "g", "Verdulería"),
-    "choclo": (1, "u", "Verdulería"),
-    "ensalada": (200, "g", "Verdulería"),
+    "medallones": (1, "u", "Almacén"),  # solo se ofrece a vegetarianos
 }
+SOLO_VEGETARIANOS = ["medallones"]
 
 # Categorías tal como se guardan en `elecciones` y cómo se muestran.
-CATEGORIAS = {**CARNES, "achuras": list(ACHURAS), "acompanamientos": list(ACOMPANAMIENTOS)}
+# Además, `elecciones["sin_ensalada"]` guarda los ingredientes que se sacan de la ensalada.
+CATEGORIAS = {
+    **CARNES,
+    "achuras": list(ACHURAS),
+    "verduras": VERDURAS + ["choclo"],
+    "acompanamientos": ["provoleta", "ensalada", "medallones"],
+}
 TITULOS = {
     "vaca": "🐄 Vaca",
     "cerdo": "🐖 Cerdo",
     "pollo": "🐔 Pollo",
     "achuras": "🌭 Achuras",
+    "verduras": "🫑 Verduras a la parrilla",
     "acompanamientos": "🥗 Acompañamientos",
 }
+TITULO_ACOMPANAMIENTOS_VEGETARIANO = "🌱 Tu menú"
+ETIQUETAS = {"medallones": "medallones (soja, lentejas, garbanzos)", "ensalada": "ensalada criolla"}
 
 # --- Cálculo ---
 
 FACTOR_APETITO = {"poco": 0.75, "normal": 1.0, "mucho": 1.3}
 FACTOR_CHICO = 0.5
-FACTOR_VEGETARIANO_ACOMPANAMIENTOS = 2
+FACTOR_VEGETARIANO_ACOMPANAMIENTOS = 2  # también verduras y ensalada
 
 GRAMOS_CARNE_POR_ADULTO = 400
 GRAMOS_PAN_POR_PERSONA = 120
@@ -54,5 +73,5 @@ KG_CARBON_POR_KG_CARNE = 1
 KG_BOLSA_CARBON = 4
 
 EXTRA = 0.15
-SIN_EXTRA = ["provoleta"]  # se compra entera: el extra la inflaba
+SIN_EXTRA = ["provoleta", "medallones"]  # se compran enteros: el extra los inflaba
 REDONDEO_GRAMOS = 10

@@ -37,6 +37,19 @@ def link_whatsapp(texto):
     return "https://wa.me/?text=" + quote(texto)
 
 
+def etiqueta(opcion):
+    """Texto de cada opción en el formulario: 'medallones' -> 'Medallones (soja, lentejas, garbanzos)'."""
+    return config.ETIQUETAS.get(opcion, opcion).capitalize()
+
+
+def resumen(elecciones):
+    """Elecciones en una línea para la tabla del organizador."""
+    texto = ", ".join(op.capitalize() for categoria in config.CATEGORIAS for op in elecciones.get(categoria, []))
+    if elecciones.get("sin_ensalada"):
+        texto += f" (ensalada sin {', '.join(elecciones['sin_ensalada'])})"
+    return texto
+
+
 def encabezado(asado):
     st.title(f"🔥 {asado['nombre']}")
     if asado["fecha"]:
@@ -82,38 +95,47 @@ def pantalla_invitado(asado):
     encabezado(asado)
     st.write("Contanos qué querés comer así compramos lo justo (y un poco más).")
 
-    # Fuera del form para que al activarlo se oculten las carnes al instante.
+    # Sin st.form: cada cambio se refleja al instante (ocultar carnes, preguntar por la ensalada).
+    nombre = st.text_input("Nombre")
+    st.caption("Si alguien más tiene tu nombre, agregá tu apellido.")
+    chico = st.toggle("🧒 Chico/a")
     vegetariano = st.toggle("🥦 Vegetariano/a")
+    apetito = st.segmented_control("Apetito", list(APETITOS), default="normal", required=True, format_func=APETITOS.get)
 
-    with st.form("respuesta", border=False):
-        nombre = st.text_input("Nombre")
-        st.caption("Si alguien más tiene tu nombre, agregá tu apellido.")
-        chico = st.toggle("🧒 Chico/a")
-        apetito = st.segmented_control(
-            "Apetito", list(APETITOS), default="normal", required=True, format_func=APETITOS.get
-        )
-
-        elecciones = {categoria: [] for categoria in config.CATEGORIAS}  # si es vegetariano/a, carnes y achuras quedan vacías
-        for categoria, opciones in config.CATEGORIAS.items():
-            if vegetariano and categoria != "acompanamientos":
-                continue
-            with st.container(border=True):
-                elecciones[categoria] = st.pills(
-                    config.TITULOS[categoria], opciones, selection_mode="multi", format_func=str.capitalize, key=categoria
+    # Lo que no se muestra queda vacío: si es vegetariano/a, carnes y achuras.
+    elecciones = {categoria: [] for categoria in config.CATEGORIAS} | {"sin_ensalada": []}
+    for categoria, opciones in config.CATEGORIAS.items():
+        titulo = config.TITULOS[categoria]
+        if vegetariano and categoria in [*config.CARNES, "achuras"]:
+            continue
+        if categoria == "acompanamientos":
+            if vegetariano:
+                titulo = config.TITULO_ACOMPANAMIENTOS_VEGETARIANO
+            else:
+                opciones = [op for op in opciones if op not in config.SOLO_VEGETARIANOS]
+        with st.container(border=True):
+            # La clave cambia con las opciones para que Streamlit no conserve una opción que ya no está.
+            elecciones[categoria] = st.pills(
+                titulo, opciones, selection_mode="multi", format_func=etiqueta, key=f"{categoria}-{len(opciones)}"
+            )
+            if "ensalada" in elecciones[categoria]:
+                elecciones["sin_ensalada"] = st.pills(
+                    "Ensalada criolla: lechuga, tomate y cebolla. ¿Le sacamos algo?",
+                    config.ENSALADA, selection_mode="multi", format_func=str.capitalize, key="sin_ensalada",
                 )
 
-        enviado = st.form_submit_button("Enviar", type="primary", width="stretch")
-
-    if not enviado:
+    if not st.button("Enviar", type="primary", width="stretch"):
         return
 
     cortes = sum(len(elecciones[c]) for c in config.CARNES)
     if not nombre.strip():
         st.error("Escribí tu nombre.")
-    elif vegetariano and not elecciones["acompanamientos"]:
-        st.error("Elegí al menos un acompañamiento.")
     elif not vegetariano and cortes == 0:
         st.error("Elegí al menos un corte de carne (vaca, cerdo o pollo).")
+    elif vegetariano and not (elecciones["verduras"] or elecciones["acompanamientos"]):
+        st.error("Elegí al menos una verdura o algo de tu menú.")
+    elif len(elecciones["sin_ensalada"]) == len(config.ENSALADA):
+        st.error("A la ensalada le tiene que quedar al menos un ingrediente.")
     else:
         nueva = db.guardar_respuesta(asado["slug"], nombre, chico, vegetariano, apetito, elecciones)
         if nueva:
@@ -165,7 +187,7 @@ def pantalla_organizador(asado):
                 "Chico/a": r["es_chico"],
                 "Vegetariano/a": r["es_vegetariano"],
                 "Apetito": APETITOS[r["apetito"]],
-                "Elecciones": ", ".join(op.capitalize() for opciones in r["elecciones"].values() for op in opciones),
+                "Elecciones": resumen(r["elecciones"]),
             }
             for r in respuestas
         ]

@@ -16,9 +16,17 @@ def _items():
     """
     items = {corte: ("g", "Carnicería") for cortes in config.CARNES.values() for corte in cortes}
     items |= {achura: (unidad, "Carnicería") for achura, (_, unidad) in config.ACHURAS.items()}
+    # La cebolla está en verduras y en ensalada: queda un solo renglón con la suma.
+    items |= {verdura: ("g", "Verdulería") for verdura in config.VERDURAS + config.ENSALADA}
+    items["choclo"] = ("u", "Verdulería")
     items |= {acomp: (unidad, seccion) for acomp, (_, unidad, seccion) in config.ACOMPANAMIENTOS.items()}
     items["pan"] = ("g", "Almacén")
     return items
+
+
+def _elegidas(elecciones, categoria, validas):
+    """Opciones elegidas en la categoría, ignorando las que ya no existen (respuestas viejas)."""
+    return [op for op in elecciones.get(categoria, []) if op in validas]
 
 
 def _hacia_arriba(valor):
@@ -38,14 +46,29 @@ def _sumar_pedidos(respuestas):
         f = factor(p)
         elecciones = p["elecciones"]
         if not p["es_vegetariano"]:
-            cortes = [corte for categoria in config.CARNES for corte in elecciones.get(categoria, [])]
+            cortes = [corte for cat, validos in config.CARNES.items() for corte in _elegidas(elecciones, cat, validos)]
             for corte in cortes:
                 total[corte] += config.GRAMOS_CARNE_POR_ADULTO * f / len(cortes)
-            for achura in elecciones.get("achuras", []):
+            for achura in _elegidas(elecciones, "achuras", config.ACHURAS):
                 total[achura] += config.ACHURAS[achura][0] * f
+
+        # Verduras, ensalada y acompañamientos: los vegetarianos cuentan doble.
         f_acomp = f * config.FACTOR_VEGETARIANO_ACOMPANAMIENTOS if p["es_vegetariano"] else f
-        for acomp in elecciones.get("acompanamientos", []):
+
+        verduras = _elegidas(elecciones, "verduras", config.VERDURAS)
+        for verdura in verduras:
+            total[verdura] += min(config.GRAMOS_POR_VERDURA, config.TOPE_GRAMOS_VERDURAS / len(verduras)) * f_acomp
+        if "choclo" in elecciones.get("verduras", []):
+            total["choclo"] += config.CHOCLOS_POR_PERSONA * f_acomp
+
+        acompanamientos = elecciones.get("acompanamientos", [])
+        if "ensalada" in acompanamientos:
+            ingredientes = [i for i in config.ENSALADA if i not in elecciones.get("sin_ensalada", [])]
+            for ingrediente in ingredientes:
+                total[ingrediente] += config.GRAMOS_ENSALADA / len(ingredientes) * f_acomp
+        for acomp in _elegidas(elecciones, "acompanamientos", config.ACOMPANAMIENTOS):
             total[acomp] += config.ACOMPANAMIENTOS[acomp][0] * f_acomp
+
         total["pan"] += config.GRAMOS_PAN_POR_PERSONA * f
     return total
 

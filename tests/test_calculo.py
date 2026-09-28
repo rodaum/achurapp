@@ -43,7 +43,7 @@ def test_apetito(apetito, gramos):
 
 
 def test_vegetariano_sin_carne_y_acompanamientos_por_dos():
-    veg = persona(vegetariano=True, vaca=["vacío"], achuras=["chorizo"], acompanamientos=["choclo"])
+    veg = persona(vegetariano=True, vaca=["vacío"], achuras=["chorizo"], verduras=["choclo"])
     lista = calculo.calcular_lista([veg])
     assert lista["Carnicería"] == {}
     # choclo: 1 × 2 × 1,15 = 2,3 -> 3 (un no vegetariano: 1,15 -> 2)
@@ -51,7 +51,7 @@ def test_vegetariano_sin_carne_y_acompanamientos_por_dos():
     # sin carne no hay carbón, pero el pan sí va
     assert lista["Almacén"] == {"pan": (140, "g")}
 
-    no_veg = calculo.calcular_lista([persona(vaca=["vacío"], acompanamientos=["choclo"])])
+    no_veg = calculo.calcular_lista([persona(vaca=["vacío"], verduras=["choclo"])])
     assert no_veg["Verdulería"] == {"choclo": (2, "u")}
 
 
@@ -71,13 +71,10 @@ def test_se_redondea_el_total_y_no_cada_aporte():
 
 
 def test_redondeo_de_unidades_y_gramos():
-    lista = calculo.calcular_lista(
-        [persona(vaca=["vacío"], achuras=["morcilla", "mollejas", "riñón"], acompanamientos=["ensalada"])]
-    )
+    lista = calculo.calcular_lista([persona(vaca=["vacío"], achuras=["morcilla", "mollejas", "riñón"])])
     assert lista["Carnicería"]["morcilla"] == (1, "u")  # 0,5 × 1,15 = 0,575 -> 1
     assert lista["Carnicería"]["mollejas"] == (70, "g")  # 60 g × 1,15 = 69 g -> 70 g
     assert lista["Carnicería"]["riñón"] == (60, "g")  # 50 g × 1,15 = 57,5 g -> 60 g
-    assert lista["Verdulería"]["ensalada"] == (230, "g")  # 200 g × 1,15 = 230 g
 
 
 def test_provoleta_sin_extra():
@@ -90,6 +87,56 @@ def test_provoleta_sin_extra():
     assert provoletas([adulto] * 3) == (2, "u")  # 1,5 -> 2
     veg = persona(vegetariano=True, acompanamientos=["provoleta"])
     assert provoletas([veg, adulto, adulto]) == (2, "u")  # 0,5 × 2 + 0,5 + 0,5 = 2
+
+
+def test_verduras_100_g_cada_una_con_tope_de_300_g():
+    una = calculo.calcular_lista([persona(vaca=["vacío"], verduras=["morrón"])])
+    assert una["Verdulería"] == {"morrón": (120, "g")}  # 100 g × 1,15 = 115 g -> 120 g (no 300 g)
+
+    todas = ["morrón", "cebolla", "berenjena", "zapallito", "papa", "batata"]
+    seis = calculo.calcular_lista([persona(vaca=["vacío"], verduras=todas)])
+    # 300 g / 6 = 50 g c/u × 1,15 = 57,5 g -> 60 g
+    assert seis["Verdulería"] == {verdura: (60, "g") for verdura in todas}
+
+
+def test_choclo_no_cuenta_para_el_tope_de_verduras():
+    lista = calculo.calcular_lista([persona(vaca=["vacío"], verduras=["morrón", "cebolla", "berenjena", "choclo"])])
+    # 3 verduras × 100 g = 300 g (justo el tope) × 1,15 = 115 g -> 120 g c/u; choclo: 1,15 -> 2
+    assert lista["Verdulería"] == {
+        "morrón": (120, "g"), "cebolla": (120, "g"), "berenjena": (120, "g"), "choclo": (2, "u")
+    }
+
+
+def test_ensalada_criolla_y_sacar_ingredientes():
+    completa = calculo.calcular_lista([persona(vaca=["vacío"], acompanamientos=["ensalada"])])
+    # 200 g / 3 = 66,7 g × 1,15 = 76,7 g -> 80 g de cada uno
+    assert completa["Verdulería"] == {"cebolla": (80, "g"), "lechuga": (80, "g"), "tomate": (80, "g")}
+
+    sin_cebolla = calculo.calcular_lista(
+        [persona(vaca=["vacío"], acompanamientos=["ensalada"], sin_ensalada=["cebolla"])]
+    )
+    # 200 g / 2 = 100 g × 1,15 = 115 g -> 120 g de lechuga y de tomate
+    assert sin_cebolla["Verdulería"] == {"lechuga": (120, "g"), "tomate": (120, "g")}
+
+
+def test_cebolla_de_ensalada_y_parrilla_en_un_renglon():
+    lista = calculo.calcular_lista([persona(vaca=["vacío"], verduras=["cebolla"], acompanamientos=["ensalada"])])
+    # parrilla 100 g + ensalada 66,7 g = 166,7 g × 1,15 = 191,7 g -> 200 g
+    assert lista["Verdulería"]["cebolla"] == (200, "g")
+
+
+def test_medallones_para_vegetarianos():
+    lista = calculo.calcular_lista([persona(vegetariano=True, acompanamientos=["medallones"])])
+    # 1 × 2 (vegetariano) = 2, sin el 15 % extra porque se compran enteros
+    assert lista["Almacén"]["medallones"] == (2, "u")
+
+
+def test_opciones_que_ya_no_existen_se_ignoran():
+    vieja = persona(vaca=["vacío", "corte inventado"], acompanamientos=["verduras a la parrilla", "choclo"])
+    lista = calculo.calcular_lista([vieja])
+    # el vacío se lleva los 400 g completos: el corte inventado no cuenta para el reparto
+    assert lista["Carnicería"] == {"vacío": (460, "g")}
+    assert lista["Verdulería"] == {}
 
 
 def test_carbon_en_bolsas_incluye_chorizos():

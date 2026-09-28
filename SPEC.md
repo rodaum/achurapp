@@ -67,12 +67,13 @@ Todo va en la **raíz del repo** (sin subcarpeta `asado/`):
 
 - Nombre (obligatorio). Texto de ayuda: "Si alguien más tiene tu nombre, agregá tu apellido".
 - ¿Es chico/a? (casilla)
-- ¿Es vegetariano/a? (casilla, **fuera del `st.form`** para que al tildarla se oculten al instante las secciones de carnes y achuras).
+- ¿Es vegetariano/a? (al activarlo se ocultan al instante las secciones de carnes y achuras; desde la etapa 9 el formulario no usa `st.form`, así todo reacciona al momento).
 - Apetito: poco / normal / mucho (por defecto: normal).
-- Preferencias por categoría, con casillas múltiples (ver `config.py` abajo).
+- Preferencias por categoría, con opciones múltiples (ver `config.py` abajo).
 - Validación, con mensaje claro:
   - si no es vegetariano, tiene que elegir al menos un corte de carne (vaca, cerdo o pollo);
-  - si es vegetariano, tiene que elegir al menos un acompañamiento.
+  - si es vegetariano, tiene que elegir al menos una verdura o una opción de su menú;
+  - si elige ensalada, le tiene que quedar al menos un ingrediente.
 - Si es vegetariano, las elecciones de carne y achuras se descartan al guardar.
 - Si alguien envía de nuevo con el mismo nombre en el mismo asado, **se actualiza su respuesta** (no se duplica). Los nombres se comparan **sin espacios al borde y sin distinguir mayúsculas/minúsculas** ("Juan" = " juan "); se muestra el nombre tal como se escribió en el último envío.
 - Confirmación al guardar, con mensaje distinto para respuesta **nueva** o **actualizada**.
@@ -97,7 +98,10 @@ Todas las constantes van en `config.py` para poder ajustarlas sin tocar la lógi
 | Cerdo           | bondiola, matambre de cerdo, costillitas                                    | Carnicería           |
 | Pollo           | pata muslo, alitas                                                          | Carnicería           |
 | Achuras         | chorizo, morcilla, chinchulines, mollejas, riñón                            | Carnicería           |
-| Acompañamientos | provoleta, verduras a la parrilla, choclo, ensalada                         | Almacén / Verdulería |
+| Verduras a la parrilla | morrón, cebolla, berenjena, zapallito, papa, batata, choclo          | Verdulería           |
+| Acompañamientos | provoleta, ensalada (criolla), medallones (solo vegetarianos)               | Almacén / Verdulería |
+
+(Etapa 9: "verduras a la parrilla" y "choclo" dejaron de ser acompañamientos y pasaron a su propia categoría; se agregaron la ensalada criolla y los medallones. Para vegetarianos, el título de acompañamientos es "🌱 Tu menú".)
 
 Automáticos (no se eligen): **pan** y **carbón**.
 
@@ -137,14 +141,22 @@ Para el cálculo del carbón, chorizo y morcilla se convierten a peso: **100 g p
 
 ### Acompañamientos
 
-Por cada persona que lo elige, multiplicado por su factor. **Si la persona es vegetariana, su cantidad de acompañamientos se multiplica × 2** (compensa la falta de carne).
+Por cada persona que lo elige, multiplicado por su factor. **Si la persona es vegetariana, sus acompañamientos, verduras y ensalada se multiplican × 2** (compensa la falta de carne).
 
-| Acompañamiento         | Cantidad por persona    | Sección    |
-| ---------------------- | ----------------------- | ---------- |
-| provoleta              | 0.5 (1 cada 2 personas; sin el 15 % extra) | Almacén    |
-| verduras a la parrilla | 300 g                   | Verdulería |
-| choclo                 | 1                       | Verdulería |
-| ensalada               | 200 g de verdura        | Verdulería |
+| Acompañamiento | Cantidad por persona                         | Sección    |
+| -------------- | -------------------------------------------- | ---------- |
+| provoleta      | 0.5 (1 cada 2 personas; sin el 15 % extra)   | Almacén    |
+| medallones     | 1 (sin el 15 % extra; solo se ofrece a vegetarianos, que con el × 2 suman 2) | Almacén |
+| ensalada       | 200 g, repartidos entre lechuga, tomate y cebolla | Verdulería |
+
+- **Ensalada criolla**: al elegirla aparece "¿Le sacamos algo?" con lechuga, tomate y cebolla. Los 200 g se reparten en partes iguales entre los ingredientes que la persona sí quiere (tiene que quedar al menos uno). En la lista van por separado (lechuga, tomate, cebolla).
+
+### Verduras a la parrilla
+
+- Cada verdura elegida aporta **100 g por persona** × factor, con un **tope de 300 g por persona**: si elige más de tres, los 300 g se reparten en partes iguales.
+- El **choclo** está en esta sección del formulario pero se cuenta en unidades: 1 por persona × factor, fuera del tope.
+- La **cebolla** de la parrilla y la de la ensalada se suman en un solo renglón.
+- Opciones que ya no existen en `config.py` (respuestas viejas) se ignoran en el cálculo.
 
 ### Automáticos
 
@@ -155,7 +167,7 @@ Por cada persona que lo elige, multiplicado por su factor. **Si la persona es ve
 
 ### Extra y redondeo
 
-- A todas las cantidades calculadas (incluido el pan) se les aplica un **extra del 15 %** (`EXTRA = 0.15`) antes de redondear. Excepciones: el carbón (ver arriba) y la **provoleta** (`SIN_EXTRA` en `config.py`), porque se compra entera y el extra la inflaba (2 personas → 2 provoletas).
+- A todas las cantidades calculadas (incluido el pan) se les aplica un **extra del 15 %** (`EXTRA = 0.15`) antes de redondear. Excepciones: el carbón (ver arriba), la **provoleta** y los **medallones** (`SIN_EXTRA` en `config.py`), porque se compran enteros y el extra los inflaba (2 personas → 2 provoletas).
 - Se redondea **el total de cada ítem**, nunca el aporte individual de cada persona.
 - Redondeo **siempre hacia arriba**:
   - todo lo que se mide en gramos (cortes, achuras, verduras, pan): múltiplos de **10 g** (`REDONDEO_GRAMOS`). Así el redondeo casi no agrega nada y el margen lo da solo el 15 %, sin importar cuántas personas respondan ("verduras a la parrilla" y "ensalada" son ítems separados en Verdulería);
@@ -183,7 +195,7 @@ CREATE TABLE IF NOT EXISTS respuestas (
     es_chico        BOOLEAN NOT NULL DEFAULT false,
     es_vegetariano  BOOLEAN NOT NULL DEFAULT false,
     apetito         TEXT NOT NULL CHECK (apetito IN ('poco','normal','mucho')),
-    elecciones      JSONB NOT NULL,   -- {"vaca": [...], "cerdo": [...], "pollo": [...], "achuras": [...], "acompanamientos": [...]}
+    elecciones      JSONB NOT NULL,   -- {"vaca": [...], "cerdo": [...], "pollo": [...], "achuras": [...], "verduras": [...], "acompanamientos": [...], "sin_ensalada": [...]}
     actualizado_en  TIMESTAMPTZ DEFAULT now(),
     UNIQUE (asado_slug, nombre_clave)
 );

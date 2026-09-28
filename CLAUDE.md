@@ -4,8 +4,9 @@ La especificación completa y las reglas de trabajo están en [SPEC.md](SPEC.md)
 
 ## Estado
 
-- **Etapa actual:** 9 — Menú más detallado (sin empezar; espera OK del usuario). Después: 10 (link personal y cierre del formulario). Ambas definidas en SPEC.md.
+- **Etapa actual:** 10 — Link personal y cierre del formulario (sin empezar; espera OK del usuario). Definida en SPEC.md.
 - Etapa 8 (ajuste del cálculo: redondeo a 10 g, achuras 60/60/50, provoleta sin extra) cerrada.
+- Etapa 9 (menú: verduras con tope, ensalada criolla, "🌱 Tu menú", medallones, formulario sin `st.form`) cerrada.
 - **Pendiente, pospuesto por el usuario:** deploy en Streamlit Community Cloud (pasos en el README). Etapa 6 ya hizo README, revisión de secretos y push a GitHub (rama `main`).
 - Etapa 7 (estética, agregada después de la spec original): tema claro/oscuro nativo, chips, pestañas, WhatsApp vía `wa.me`. Definida en SPEC.md.
 - Etapas cerradas: 2 (formulario y creación de asado), 3 (conexión a Neon), 4 (vista del organizador), 5 (cálculo y lista de compras).
