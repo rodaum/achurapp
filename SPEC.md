@@ -27,7 +27,7 @@ Es un proyecto personal para una exposición breve. Tiene que ser **simple, legi
 - pytest para los tests de la lógica de cálculo
 - Deploy: GitHub (repo público) + Streamlit Community Cloud
 
-`requirements.txt`: `streamlit`, `sqlalchemy`, `psycopg2-binary`, `pytest`.
+`requirements.txt`: `streamlit`, `sqlalchemy`, `psycopg2-binary`, `pytest`, con versión fija (`==`) desde la etapa 11.
 
 ## Estructura de archivos
 
@@ -59,7 +59,7 @@ Todo va en la **raíz del repo** (sin subcarpeta `asado/`):
 | `?asado=<slug>&admin=<clave>` | **Vista del organizador**                                                                                                     |
 | `?asado=<slug>&invitado=<token>` | **Link personal del invitado**: su formulario con las respuestas cargadas, para editarlas (etapa 10).                      |
 
-- `slug`: derivado del nombre del asado + sufijo aleatorio corto (ej. `cumple-juan-x7k2`). Se quitan tildes y ñ con `unicodedata` (biblioteca estándar).
+- `slug`: derivado del nombre del asado + sufijo aleatorio de 8 caracteres (ej. `cumple-juan-x7k2m9qa`; hasta la etapa 10 eran 4). Se quitan tildes y ñ con `unicodedata` (biblioteca estándar).
 - Links absolutos: se arman con `st.context.url` si la versión de Streamlit lo trae; si no, se muestra solo la parte `?asado=...`.
 - `clave`: token aleatorio (`secrets.token_urlsafe(8)`). No es seguridad real; alcanza para que un invitado no vea la vista del organizador por accidente.
 - Si el `slug` no existe o la clave es incorrecta, mostrar un mensaje claro.
@@ -289,6 +289,18 @@ La app crea las tablas al iniciar si no existen; las columnas de la etapa 10 se 
   - Si alguien pierde su link personal, no puede editar su respuesta.
 - **Cerrar el formulario**: interruptor "Formulario abierto" en la vista del organizador, que se puede volver a abrir. Con el formulario cerrado, los links del grupo y los personales muestran "El formulario está cerrado: ya se hicieron las compras 🛒".
 - Modelo de datos: `respuestas.token TEXT` y `asados.cerrado BOOLEAN NOT NULL DEFAULT false`, agregadas con `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` al iniciar.
+
+### Etapa 11 — Preparación para uso público
+
+Revisión de seguridad antes de abrir la app a cualquiera. Sin dependencias nuevas.
+
+- **Largo máximo de textos**: nombre del asado hasta 60 caracteres y nombre del invitado hasta 40 (`MAX_NOMBRE_ASADO`, `MAX_NOMBRE_INVITADO` en `config.py`). Se limita en el campo (`max_chars`) y se vuelve a validar al guardar, porque el navegador se puede saltear.
+- **Tope de respuestas por asado**: 100 (`MAX_RESPUESTAS`). Al llegar, el link del grupo muestra "Este asado ya tiene 100 respuestas, el máximo…"; los links personales siguen pudiendo editar.
+- **Errores sin detalle**: `[client] showErrorDetails = "none"` en `.streamlit/config.toml`. El visitante ve un aviso genérico y el detalle queda en los logs.
+- **Nombres sin Markdown**: el nombre del asado y el del invitado se muestran escapados, sin links ni imágenes.
+- **Slug más largo**: sufijo de 8 caracteres. Los asados existentes siguen funcionando.
+- **Versiones fijas** en `requirements.txt`.
+- Descartado por ahora: usuario de Neon con permisos mínimos (obligaría a sacar la creación automática de tablas).
 
 ## Primer paso
 

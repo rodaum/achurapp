@@ -9,6 +9,9 @@ App web para organizar las compras de un asado. El organizador crea el asado y c
 | sin parámetros                 | **Crear asado**: devuelve el link para invitados y el del organizador.      |
 | `?asado=<slug>`                | **Formulario del invitado**: cortes, achuras, acompañamientos y apetito.    |
 | `?asado=<slug>&admin=<clave>`  | **Vista del organizador**: respuestas y lista de compras para WhatsApp.     |
+| `?asado=<slug>&invitado=<token>` | **Link personal del invitado**: para ver y cambiar su propia respuesta.   |
+
+Cada asado admite hasta 100 respuestas y los nombres tienen un largo máximo (ver `config.py`), para que la app se pueda abrir al público sin que nadie llene la base.
 
 Las cantidades se calculan por persona (400 g de carne por adulto, ajustado por apetito y si es chico/a), se les suma un 15 % extra y se redondean siempre hacia arriba. Las reglas completas están en [SPEC.md](SPEC.md) y las constantes en [config.py](config.py).
 

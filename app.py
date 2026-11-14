@@ -19,11 +19,17 @@ ICONOS_SECCION = {"Carnicería": "🥩", "Verdulería": "🥬", "Almacén": "�
 
 
 def generar_slug(nombre):
-    """'Cumpleaños de Juan' -> 'cumpleanos-de-juan-x7k2'."""
+    """'Cumpleaños de Juan' -> 'cumpleanos-de-juan-x7k2m9qa'."""
     texto = unicodedata.normalize("NFKD", nombre).encode("ascii", "ignore").decode().lower()
     base = re.sub(r"[^a-z0-9]+", "-", texto).strip("-")[:40] or "asado"
-    sufijo = "".join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(4))
+    # 8 caracteres: casi 3 billones de combinaciones, imposible de adivinar probando.
+    sufijo = "".join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(8))
     return f"{base}-{sufijo}"
+
+
+def sin_markdown(texto):
+    """Escapa los símbolos de Markdown: un nombre se muestra tal cual, sin links ni imágenes."""
+    return re.sub(r"([\\`*_{}\[\]()#+\-.!|<>~:$])", r"\\\1", texto)
 
 
 def armar_link(**params):
@@ -51,7 +57,7 @@ def resumen(elecciones):
 
 
 def encabezado(asado):
-    st.title(f"🔥 {asado['nombre']}")
+    st.title(f"🔥 {sin_markdown(asado['nombre'])}")
     if asado["fecha"]:
         st.badge(f"{asado['fecha']:%d/%m/%Y}", icon="📅", color="orange")
 
@@ -69,7 +75,7 @@ def pantalla_crear():
     st.title("🔥 Achurapp")
     st.write("Armá la lista de compras de tu asado para que **sobre y no falte**.")
     with st.form("crear"):
-        nombre = st.text_input("¿Cómo se llama el asado?", placeholder="Cumple de Juan")
+        nombre = st.text_input("¿Cómo se llama el asado?", placeholder="Cumple de Juan", max_chars=config.MAX_NOMBRE_ASADO)
         fecha = st.date_input("Fecha (opcional)", value=None, format="DD/MM/YYYY")
         creado = st.form_submit_button("Crear asado", type="primary", width="stretch")
 
@@ -77,6 +83,10 @@ def pantalla_crear():
         return
     if not nombre.strip():
         st.error("Poné un nombre para el asado.")
+        return
+    # max_chars lo controla el navegador; acá se vuelve a chequear por si alguien lo saltea.
+    if len(nombre.strip()) > config.MAX_NOMBRE_ASADO:
+        st.error(f"El nombre puede tener hasta {config.MAX_NOMBRE_ASADO} caracteres.")
         return
 
     slug = generar_slug(nombre)
@@ -107,6 +117,9 @@ def pantalla_invitado(asado, token=None, respuesta=None):
     if asado["cerrado"]:
         st.info("El formulario está cerrado: ya se hicieron las compras 🛒")
         return
+    if not respuesta and db.contar_respuestas(asado["slug"]) >= config.MAX_RESPUESTAS:
+        st.info(f"Este asado ya tiene {config.MAX_RESPUESTAS} respuestas, el máximo. Si te falta anotarte, avisale a quien organiza.")
+        return
 
     previa = respuesta or {}
     elecciones_previas = previa.get("elecciones", {})
@@ -117,7 +130,7 @@ def pantalla_invitado(asado, token=None, respuesta=None):
         nombre = st.text_input("Nombre", value=respuesta["nombre"], disabled=True)
     else:
         st.write("Contanos qué querés comer así compramos lo justo (y un poco más).")
-        nombre = st.text_input("Nombre")
+        nombre = st.text_input("Nombre", max_chars=config.MAX_NOMBRE_INVITADO)
         st.caption("Si alguien más tiene tu nombre, agregá tu apellido.")
 
     # Sin st.form: cada cambio se refleja al instante (ocultar carnes, preguntar por la ensalada).
@@ -159,6 +172,8 @@ def pantalla_invitado(asado, token=None, respuesta=None):
     cortes = sum(len(elecciones[c]) for c in config.CARNES)
     if not nombre.strip():
         st.error("Escribí tu nombre.")
+    elif not respuesta and len(nombre.strip()) > config.MAX_NOMBRE_INVITADO:
+        st.error(f"El nombre puede tener hasta {config.MAX_NOMBRE_INVITADO} caracteres.")
     elif not vegetariano and cortes == 0:
         st.error("Elegí al menos un corte de carne (vaca, cerdo o pollo).")
     elif vegetariano and not (elecciones["verduras"] or elecciones["acompanamientos"]):
@@ -167,7 +182,7 @@ def pantalla_invitado(asado, token=None, respuesta=None):
         st.error("A la ensalada le tiene que quedar al menos un ingrediente.")
     elif respuesta:
         db.actualizar_respuesta(asado["slug"], token, chico, vegetariano, apetito, elecciones)
-        st.success(f"Listo, {nombre}: actualizamos tu respuesta.")
+        st.success(f"Listo, {sin_markdown(nombre)}: actualizamos tu respuesta.")
         st.balloons()
     else:
         token = db.crear_respuesta(asado["slug"], nombre, chico, vegetariano, apetito, elecciones)
@@ -176,7 +191,7 @@ def pantalla_invitado(asado, token=None, respuesta=None):
             return
         # La URL pasa a ser el link personal: si toca algo más, sigue editando su propia respuesta.
         st.query_params["invitado"] = token
-        st.success(f"¡Gracias, {nombre.strip()}! Guardamos tu respuesta.")
+        st.success(f"¡Gracias, {sin_markdown(nombre.strip())}! Guardamos tu respuesta.")
         tarjeta_link_personal(asado, token)
         st.balloons()
 

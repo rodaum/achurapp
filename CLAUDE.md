@@ -4,7 +4,7 @@ La especificación completa y las reglas de trabajo están en [SPEC.md](SPEC.md)
 
 ## Estado
 
-- **Etapa actual:** ninguna en curso. Todas las etapas definidas (2 a 10) están cerradas.
+- **Etapa actual:** ninguna en curso. Todas las etapas definidas (2 a 11) están cerradas.
 - **Pendiente, pospuesto por el usuario:** deploy en Streamlit Community Cloud (pasos en el README). El código ya está en GitHub (rama `main`).
 - Etapas cerradas:
   - 2 a 5: formulario y creación de asado, conexión a Neon, vista del organizador, cálculo y lista de compras.
@@ -13,6 +13,7 @@ La especificación completa y las reglas de trabajo están en [SPEC.md](SPEC.md)
   - 8: ajuste del cálculo (redondeo a 10 g, achuras 60/60/50, provoleta y medallones sin extra).
   - 9: menú detallado (verduras con tope, ensalada criolla, "🌱 Tu menú", medallones, formulario sin `st.form`).
   - 10: link personal por invitado y cierre del formulario desde el organizador.
+  - 11: preparación para uso público (largo máximo de nombres, tope de 100 respuestas, errores sin detalle, nombres sin Markdown, slug de 8 caracteres, versiones fijas).
 
 ## Recordatorios
 

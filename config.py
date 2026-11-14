@@ -56,6 +56,11 @@ TITULOS = {
 TITULO_ACOMPANAMIENTOS_VEGETARIANO = "🌱 Tu menú"
 ETIQUETAS = {"medallones": "medallones (soja, lentejas, garbanzos)", "ensalada": "ensalada criolla"}
 
+# Límites para uso público: que nadie llene la base con textos enormes o miles de respuestas.
+MAX_NOMBRE_ASADO = 60
+MAX_NOMBRE_INVITADO = 40
+MAX_RESPUESTAS = 100
+
 # --- Cálculo ---
 
 FACTOR_APETITO = {"poco": 0.75, "normal": 1.0, "mucho": 1.3}

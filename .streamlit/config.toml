@@ -1,4 +1,11 @@
-# Tema "brasa" de la app, con versión clara y oscura. Sin secretos: este archivo sí va al repo.
+# Configuración de Streamlit. Sin secretos: este archivo sí va al repo.
+
+# Si algo falla, el visitante ve un aviso genérico; el detalle queda en los logs
+# (en Streamlit Cloud: "Manage app"). Así no se muestran consultas SQL ni datos internos.
+[client]
+showErrorDetails = "none"
+
+# Tema "brasa" de la app, con versión clara y oscura.
 # El modo se elige en el menú ⋮ → Settings; por defecto sigue al sistema operativo.
 [theme]
 showWidgetBorder = true

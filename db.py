@@ -106,6 +106,14 @@ def listar_respuestas(asado_slug):
     return [dict(fila) for fila in filas]
 
 
+def contar_respuestas(asado_slug):
+    """Cuántas respuestas tiene el asado (para el tope de config.MAX_RESPUESTAS)."""
+    with _conexion().session as s:
+        return s.execute(
+            text("SELECT count(*) FROM respuestas WHERE asado_slug = :slug"), {"slug": asado_slug}
+        ).scalar()
+
+
 def obtener_respuesta(asado_slug, token):
     """La respuesta del link personal, o None si el token no corresponde a este asado."""
     with _conexion().session as s:
