@@ -19,7 +19,7 @@ ICONOS_SECCION = {"Carnicería": "🥩", "Verdulería": "🥬", "Almacén": "�
 
 
 def generar_slug(nombre):
-    """'Cumpleaños de Juan' -> 'cumpleanos-de-juan-x7k2m9qa'."""
+    """'Cumpleaños de Rodrigo' -> 'cumpleanos-de-rodrigo-x7k2m9qa'."""
     texto = unicodedata.normalize("NFKD", nombre).encode("ascii", "ignore").decode().lower()
     base = re.sub(r"[^a-z0-9]+", "-", texto).strip("-")[:40] or "asado"
     # 8 caracteres: casi 3 billones de combinaciones, imposible de adivinar probando.
@@ -75,7 +75,7 @@ def pantalla_crear():
     st.title("🔥 Achurapp")
     st.write("Armá la lista de compras de tu asado para que **sobre y no falte**.")
     with st.form("crear"):
-        nombre = st.text_input("¿Cómo se llama el asado?", placeholder="Cumple de Juan", max_chars=config.MAX_NOMBRE_ASADO)
+        nombre = st.text_input("¿Cómo se llama el asado?", placeholder="Cumple de Rodrigo", max_chars=config.MAX_NOMBRE_ASADO)
         fecha = st.date_input("Fecha (opcional)", value=None, format="DD/MM/YYYY")
         creado = st.form_submit_button("Crear asado", type="primary", width="stretch")
 

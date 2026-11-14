@@ -59,7 +59,7 @@ Todo va en la **raíz del repo** (sin subcarpeta `asado/`):
 | `?asado=<slug>&admin=<clave>` | **Vista del organizador**                                                                                                     |
 | `?asado=<slug>&invitado=<token>` | **Link personal del invitado**: su formulario con las respuestas cargadas, para editarlas (etapa 10).                      |
 
-- `slug`: derivado del nombre del asado + sufijo aleatorio de 8 caracteres (ej. `cumple-juan-x7k2m9qa`; hasta la etapa 10 eran 4). Se quitan tildes y ñ con `unicodedata` (biblioteca estándar).
+- `slug`: derivado del nombre del asado + sufijo aleatorio de 8 caracteres (ej. `cumple-rodrigo-x7k2m9qa`; hasta la etapa 10 eran 4). Se quitan tildes y ñ con `unicodedata` (biblioteca estándar).
 - Links absolutos: se arman con `st.context.url` si la versión de Streamlit lo trae; si no, se muestra solo la parte `?asado=...`.
 - `clave`: token aleatorio (`secrets.token_urlsafe(8)`). No es seguridad real; alcanza para que un invitado no vea la vista del organizador por accidente.
 - Si el `slug` no existe o la clave es incorrecta, mostrar un mensaje claro.
@@ -79,7 +79,7 @@ Todo va en la **raíz del repo** (sin subcarpeta `asado/`):
 - **Cada respuesta es privada y la edita solo quien la creó** (etapa 10; reemplaza la regla anterior de "reenviar con el mismo nombre actualiza"):
   - al responder por primera vez desde el link del grupo, la persona recibe su **link personal** (`?asado=<slug>&invitado=<token>`, token con `secrets.token_urlsafe(8)`), con aviso de guardarlo y botón para mandárselo por WhatsApp. La URL del navegador pasa a ser ese link;
   - con el link personal, el formulario aparece con sus respuestas cargadas y puede editarlas; el nombre no se cambia;
-  - desde el link del grupo, un nombre que ya respondió **no pisa** la respuesta existente: "Ya hay una respuesta con ese nombre. Si sos vos, entrá con tu link personal; si no, agregá tu apellido." Los nombres se comparan **sin espacios al borde y sin distinguir mayúsculas/minúsculas** ("Juan" = " juan ");
+  - desde el link del grupo, un nombre que ya respondió **no pisa** la respuesta existente: "Ya hay una respuesta con ese nombre. Si sos vos, entrá con tu link personal; si no, agregá tu apellido." Los nombres se comparan **sin espacios al borde y sin distinguir mayúsculas/minúsculas** ("Rodrigo" = " rodrigo ");
   - si alguien pierde su link personal, no puede editar su respuesta.
 - Confirmación al guardar, con mensaje distinto para respuesta **nueva** o **actualizada**.
 - Si el formulario está **cerrado**, tanto el link del grupo como los personales muestran "El formulario está cerrado: ya se hicieron las compras 🛒".
@@ -128,7 +128,7 @@ factor = FACTOR_APETITO[apetito] × (FACTOR_CHICO si es chico, si no 1)
 - El total por corte es la suma de los aportes de todos.
 - Vegetarianos: 0 g de carne y de achuras.
 
-Ejemplo: Ana (normal) elige vacío y bondiola → 200 g de vacío + 200 g de bondiola.
+Ejemplo: Rodrigo (normal) elige vacío y bondiola → 200 g de vacío + 200 g de bondiola.
 
 ### Achuras (se suman aparte de la carne)
 
